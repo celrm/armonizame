@@ -19,6 +19,20 @@ init _ =
   , Cmd.none
   )
 
+algorithm : Model -> List Chord
+algorithm model =
+  let note =
+        if model.current == -1
+          then -1
+          else modBy 12 (model.current - model.tonality + 12)
+    in
+  case model.mode of
+    Major ->
+      majorChords
+      |> List.filterMap (\c -> if List.member note (major c) then Just c else Nothing)
+    Minor ->
+      minorChords
+      |> List.filterMap (\c -> if List.member note (minor c) then Just c else Nothing)
 
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =

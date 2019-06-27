@@ -12,12 +12,12 @@ title =
     [ style "font-size" "30px"
     , style "margin" "50px 0px"
     ]
-    [ text "Basic Harmony Helper"]
+    [ text "Asistente Armónico"]
 
 tonality : Html Msg
 tonality =
   div [style "column-count" "2"]
-    [ text " Tonality ", br [] []
+    [ text " Tonalidad ", br [] []
     , select [ onInput ChangeTon ]
         (List.range 0 11 |> List.map noteToOption)
     , br [style "margin-bottom" "30px"] []
@@ -29,7 +29,7 @@ tonality =
             , onClick (ChangeMode Major)
             ]
             []
-        , text " Major "
+        , text " Mayor "
         ]
     , br [] []
     , label []
@@ -40,59 +40,45 @@ tonality =
             , onClick (ChangeMode Minor)
             ]
             []
-        , text " Minor"
+        , text " Menor"
         ]
     ]
 
 selection : Model -> Html Msg
 selection model =
   div [style "column-count" "3"]
-  [ text "Previous", br [] []
+  [ text "Anterior", br [] []
   , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote model.previous)], br [] []
-  , text "Current", br [] []
+  , text "Actual", br [] []
   , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote model.current)], br [] []
-  , text "Next", br [] []
+  , text "Siguiente", br [] []
   , select [ onInput Input ]
       (List.range -1 11 |> List.map noteToOption), br [] []
   ]
 
-algorithm : Model -> List Chord
-algorithm model =
-  let note =
-        if model.current == -1
-          then -1
-          else modBy 12 (model.current - model.tonality + 12)
-    in
-  case model.mode of
-    Major ->
-      majorChords
-      |> List.filterMap (\c -> if List.member note (major c) then Just c else Nothing)
-    Minor ->
-      minorChords
-      |> List.filterMap (\c -> if List.member note (minor c) then Just c else Nothing)
-
 lessons : Html Msg
 lessons =
   div []
-    [ text "Lesson"
+    [ text "Lección"
     , select [ onInput ChangeTheory, style "margin" "0px 20px"  ]
       (List.range 1 16 |> List.map intToOption)
-    , button [onClick DownloadTheory] [ text "Download theory" ]
+    , button [onClick DownloadTheory] [ text "Descargar teoría" ]
     ]
 
 view : Model -> Browser.Document Msg
 view model =
-  (Browser.Document "Basic Harmony Helper"
+  (Browser.Document "Asistente Armónico"
     [ div [style "text-align" "center"]
       [ title
       , tonality
       , br [] []
       , selection model
       , br [] []
-      , (algorithm model)
-        |> List.map (\c -> p [] [text (fromChord c)] )
+      , model.output
+        |> List.map fromChord
+        |> List.map (\c -> p [] [text c] )
         |> (\l -> div [] l)
-      , button [onClick Reset] [text "Reset"]
+      , button [onClick Reset] [text "Reseteo"]
       , br [] [], br [] []
       , lessons
       ]

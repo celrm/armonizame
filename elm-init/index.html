@@ -1539,7 +1539,7 @@ function _Json_runArrayDecoder(decoder, value, toElmValue)
 
 function _Json_isArray(value)
 {
-	return Array.isArray(value) || (typeof FileList === 'function' && value instanceof FileList);
+	return Array.isArray(value) || (typeof FileList !== 'undefined' && value instanceof FileList);
 }
 
 function _Json_toElmArray(array)
@@ -2321,6 +2321,184 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 			: (obj[name] = exports[name]);
 	}
 }
+
+
+
+// DECODER
+
+var _File_decoder = _Json_decodePrim(function(value) {
+	// NOTE: checks if `File` exists in case this is run on node
+	return (typeof File !== 'undefined' && value instanceof File)
+		? elm$core$Result$Ok(value)
+		: _Json_expecting('a FILE', value);
+});
+
+
+// METADATA
+
+function _File_name(file) { return file.name; }
+function _File_mime(file) { return file.type; }
+function _File_size(file) { return file.size; }
+
+function _File_lastModified(file)
+{
+	return elm$time$Time$millisToPosix(file.lastModified);
+}
+
+
+// DOWNLOAD
+
+var _File_downloadNode;
+
+function _File_getDownloadNode()
+{
+	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
+}
+
+var _File_download = F3(function(name, mime, content)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var blob = new Blob([content], {type: mime});
+
+		// for IE10+
+		if (navigator.msSaveOrOpenBlob)
+		{
+			navigator.msSaveOrOpenBlob(blob, name);
+			return;
+		}
+
+		// for HTML5
+		var node = _File_getDownloadNode();
+		var objectUrl = URL.createObjectURL(blob);
+		node.href = objectUrl;
+		node.download = name;
+		_File_click(node);
+		URL.revokeObjectURL(objectUrl);
+	});
+});
+
+function _File_downloadUrl(href)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var node = _File_getDownloadNode();
+		node.href = href;
+		node.download = '';
+		node.origin === location.origin || (node.target = '_blank');
+		_File_click(node);
+	});
+}
+
+
+// IE COMPATIBILITY
+
+function _File_makeBytesSafeForInternetExplorer(bytes)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
+	// all other browsers can just run `new Blob([bytes])` directly with no problem
+	//
+	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+
+function _File_click(node)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
+	// all other browsers have MouseEvent and do not need this conditional stuff
+	//
+	if (typeof MouseEvent === 'function')
+	{
+		node.dispatchEvent(new MouseEvent('click'));
+	}
+	else
+	{
+		var event = document.createEvent('MouseEvents');
+		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		document.body.appendChild(node);
+		node.dispatchEvent(event);
+		document.body.removeChild(node);
+	}
+}
+
+
+// UPLOAD
+
+var _File_node;
+
+function _File_uploadOne(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			callback(_Scheduler_succeed(event.target.files[0]));
+		});
+		_File_click(_File_node);
+	});
+}
+
+function _File_uploadOneOrMore(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.multiple = true;
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			var elmFiles = _List_fromArray(event.target.files);
+			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
+		});
+		_File_click(_File_node);
+	});
+}
+
+
+// CONTENT
+
+function _File_toString(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsText(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toBytes(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(new DataView(reader.result)));
+		});
+		reader.readAsArrayBuffer(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toUrl(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsDataURL(blob);
+		return function() { reader.abort(); };
+	});
+}
+
 
 
 
@@ -4320,6 +4498,10 @@ function _Browser_load(url)
 		}
 	}));
 }
+var author$project$Types$Major = {$: 'Major'};
+var elm$core$Basics$negate = function (n) {
+	return -n;
+};
 var elm$core$Basics$False = {$: 'False'};
 var elm$core$Basics$True = {$: 'True'};
 var elm$core$Result$isOk = function (result) {
@@ -4798,58 +4980,63 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
 var author$project$State$init = function (_n0) {
-	return _Utils_Tuple2('', elm$core$Platform$Cmd$none);
+	return _Utils_Tuple2(
+		{current: -1, mode: author$project$Types$Major, next: -1, output: _List_Nil, previous: -1, theory: 0, tonality: 0},
+		elm$core$Platform$Cmd$none);
 };
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
 var author$project$State$subscriptions = function (model) {
 	return elm$core$Platform$Sub$none;
 };
-var author$project$State$update = F2(
-	function (msg, model) {
-		return _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-	});
-var elm$browser$Browser$Document = F2(
-	function (title, body) {
-		return {body: body, title: title};
-	});
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
-var elm$json$Json$Decode$map = _Json_map1;
-var elm$json$Json$Decode$map2 = _Json_map2;
-var elm$json$Json$Decode$succeed = _Json_succeed;
-var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
-	switch (handler.$) {
-		case 'Normal':
-			return 0;
-		case 'MayStopPropagation':
-			return 1;
-		case 'MayPreventDefault':
-			return 2;
+var author$project$State$theoryUrl = function (k) {
+	switch (k) {
+		case 1:
+			return 'http://haciendomusica.com/Armonia2/Tema%2001%20-%20Escritura%20para%20coro.pdf';
+		case 2:
+			return 'http://haciendomusica.com/Armonia2/Tema%2002%20-%20El%20enlace%20de%20acordes.pdf';
+		case 3:
+			return 'http://haciendomusica.com/Armonia2/Tema%2003%20-%20El%20Sistema%20Armonico%20Basico.pdf';
+		case 4:
+			return 'http://haciendomusica.com/Armonia2/Tema%2004%20-%201a%20Inversion%20del%20acorde.pdf';
+		case 5:
+			return 'http://haciendomusica.com/Armonia2/Tema%2005%20-%20El%20acorde%20de%207a%20de%20dominante.pdf';
+		case 6:
+			return 'http://haciendomusica.com/Armonia2/Tema%2006%20-%20Las%20Cadencias.pdf';
+		case 7:
+			return 'http://haciendomusica.com/Armonia2/Tema%2007%20-%20Las%20Dominantes%20Secundarias.pdf';
+		case 8:
+			return 'http://haciendomusica.com/Armonia2/Tema%2008%20-%20Las%20Notas%20Extranas%20-%20Introduccion.pdf';
+		case 9:
+			return 'http://haciendomusica.com/Armonia2/Tema%2009%20-%20El%20Modo%20Menor.pdf';
+		case 10:
+			return 'http://haciendomusica.com/Armonia2/Tema%2010%20-%202a%20Inversion%20del%20acorde.pdf';
+		case 11:
+			return 'http://haciendomusica.com/Armonia2/Tema%2011%20-%20Modulacion%20por%20transformacion.pdf';
+		case 12:
+			return 'http://haciendomusica.com/Armonia2/Tema%2012%20-%20El%20V%20grado%20con%209a%20-%20El%20VII%20grado%20con%207a.pdf';
+		case 13:
+			return 'http://haciendomusica.com/Armonia2/Tema%2013%20-%20Progresiones%20y%20series%20de%206as.pdf';
+		case 14:
+			return 'http://haciendomusica.com/Armonia2/Tema%2014%20-%20Las%20Notas%20Extranas%20-%202a%20parte.pdf';
+		case 15:
+			return 'http://haciendomusica.com/Armonia2/Tema%2015%20-%207a%20Diatonica%20y%20Series%20de%207as.pdf';
+		case 16:
+			return 'http://haciendomusica.com/Armonia2/Tema%2016%20-%20Armonia%20Cromatica%20y%20Alterada.pdf';
 		default:
-			return 3;
+			return '';
 	}
 };
-var elm$html$Html$div = _VirtualDom_node('div');
-var author$project$View$view = function (model) {
-	return A2(
-		elm$browser$Browser$Document,
-		'Title',
-		_List_fromArray(
-			[
-				A2(elm$html$Html$div, _List_Nil, _List_Nil)
-			]));
-};
-var elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
-};
-var elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
-};
-var elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
-};
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var elm$core$String$toInt = _String_toInt;
 var elm$core$Basics$never = function (_n0) {
 	never:
 	while (true) {
@@ -4858,6 +5045,9 @@ var elm$core$Basics$never = function (_n0) {
 		_n0 = $temp$_n0;
 		continue never;
 	}
+};
+var elm$core$Basics$identity = function (x) {
+	return x;
 };
 var elm$core$Task$Perform = function (a) {
 	return {$: 'Perform', a: a};
@@ -5007,6 +5197,703 @@ var elm$core$Task$perform = F2(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
 	});
+var elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var elm$time$Time$millisToPosix = elm$time$Time$Posix;
+var elm$file$File$Download$url = function (href) {
+	return A2(
+		elm$core$Task$perform,
+		elm$core$Basics$never,
+		_File_downloadUrl(href));
+};
+var author$project$State$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'ChangeMode':
+				var m = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{mode: m}),
+					elm$core$Platform$Cmd$none);
+			case 'ChangeTon':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tonality: A2(
+								elm$core$Maybe$withDefault,
+								0,
+								elm$core$String$toInt(s))
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'Input':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							current: model.next,
+							next: A2(
+								elm$core$Maybe$withDefault,
+								0,
+								elm$core$String$toInt(s)),
+							previous: model.current
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'ChangeTheory':
+				var s = msg.a;
+				var k = A2(
+					elm$core$Maybe$withDefault,
+					1,
+					elm$core$String$toInt(s));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{theory: k}),
+					elm$core$Platform$Cmd$none);
+			case 'DownloadTheory':
+				return _Utils_Tuple2(
+					model,
+					elm$file$File$Download$url(
+						author$project$State$theoryUrl(model.theory)));
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{current: -1, next: -1, output: _List_Nil, previous: -1}),
+					elm$core$Platform$Cmd$none);
+		}
+	});
+var author$project$Types$Reset = {$: 'Reset'};
+var author$project$Types$fromChord = function (s) {
+	switch (s.$) {
+		case 'I':
+			return 'I';
+		case 'II':
+			return 'II';
+		case 'IIN':
+			return 'IIN';
+		case 'IV':
+			return 'IV';
+		case 'V':
+			return 'V';
+		case 'V9':
+			return 'V9';
+		case 'VI':
+			return 'VI';
+		case 'VII':
+			return 'VII';
+		case 'V_II':
+			return 'V_II';
+		case 'VII_II':
+			return 'VII_II';
+		case 'V_IV':
+			return 'V_IV';
+		case 'VII_IV':
+			return 'VII_IV';
+		case 'V_V':
+			return 'V_V';
+		case 'VII_V':
+			return 'VII_V';
+		case 'V_VI':
+			return 'V_VI';
+		case 'VII_VI':
+			return 'VII_VI';
+		default:
+			return '';
+	}
+};
+var author$project$Types$major = function (s) {
+	switch (s.$) {
+		case 'I':
+			return _List_fromArray(
+				[0, 4, 7]);
+		case 'II':
+			return _List_fromArray(
+				[2, 5, 9]);
+		case 'IIN':
+			return _List_fromArray(
+				[1, 5, 8]);
+		case 'IV':
+			return _List_fromArray(
+				[5, 9, 0]);
+		case 'V':
+			return _List_fromArray(
+				[7, 11, 2, 5]);
+		case 'V9':
+			return _List_fromArray(
+				[7, 11, 5, 8]);
+		case 'VI':
+			return _List_fromArray(
+				[9, 0, 4]);
+		case 'VII':
+			return _List_fromArray(
+				[11, 2, 5, 8]);
+		case 'V_II':
+			return _List_fromArray(
+				[9, 1, 4, 7]);
+		case 'VII_II':
+			return _List_fromArray(
+				[1, 4, 7, 10]);
+		case 'V_IV':
+			return _List_fromArray(
+				[0, 4, 7, 10]);
+		case 'VII_IV':
+			return _List_fromArray(
+				[4, 7, 10, 1]);
+		case 'V_V':
+			return _List_fromArray(
+				[2, 6, 9, 0]);
+		case 'VII_V':
+			return _List_fromArray(
+				[6, 9, 0, 3]);
+		case 'V_VI':
+			return _List_fromArray(
+				[4, 8, 11, 2]);
+		case 'VII_VI':
+			return _List_fromArray(
+				[8, 11, 2, 5]);
+		default:
+			return _List_Nil;
+	}
+};
+var author$project$Types$I = {$: 'I'};
+var author$project$Types$II = {$: 'II'};
+var author$project$Types$IIN = {$: 'IIN'};
+var author$project$Types$IV = {$: 'IV'};
+var author$project$Types$V = {$: 'V'};
+var author$project$Types$V9 = {$: 'V9'};
+var author$project$Types$VI = {$: 'VI'};
+var author$project$Types$VII = {$: 'VII'};
+var author$project$Types$VII_II = {$: 'VII_II'};
+var author$project$Types$VII_IV = {$: 'VII_IV'};
+var author$project$Types$VII_V = {$: 'VII_V'};
+var author$project$Types$VII_VI = {$: 'VII_VI'};
+var author$project$Types$V_II = {$: 'V_II'};
+var author$project$Types$V_IV = {$: 'V_IV'};
+var author$project$Types$V_V = {$: 'V_V'};
+var author$project$Types$V_VI = {$: 'V_VI'};
+var author$project$Types$majorChords = _List_fromArray(
+	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_II, author$project$Types$VII_II, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
+var author$project$Types$minor = function (s) {
+	switch (s.$) {
+		case 'I':
+			return _List_fromArray(
+				[0, 3, 7]);
+		case 'II':
+			return _List_fromArray(
+				[2, 5, 8]);
+		case 'IIN':
+			return _List_fromArray(
+				[1, 5, 8]);
+		case 'IV':
+			return _List_fromArray(
+				[5, 8, 0]);
+		case 'V':
+			return _List_fromArray(
+				[7, 11, 2, 5]);
+		case 'V9':
+			return _List_fromArray(
+				[7, 11, 5, 8]);
+		case 'VI':
+			return _List_fromArray(
+				[8, 0, 3]);
+		case 'VII':
+			return _List_fromArray(
+				[11, 2, 5, 8]);
+		case 'V_IV':
+			return _List_fromArray(
+				[0, 4, 7, 10]);
+		case 'VII_IV':
+			return _List_fromArray(
+				[4, 7, 10, 1]);
+		case 'V_V':
+			return _List_fromArray(
+				[2, 6, 9, 0]);
+		case 'VII_V':
+			return _List_fromArray(
+				[6, 9, 0, 3]);
+		case 'V_VI':
+			return _List_fromArray(
+				[4, 8, 11, 2]);
+		case 'VII_VI':
+			return _List_fromArray(
+				[8, 11, 2, 5]);
+		default:
+			return _List_Nil;
+	}
+};
+var author$project$Types$minorChords = _List_fromArray(
+	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
+var elm$core$Basics$modBy = _Basics_modBy;
+var elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _n0 = f(mx);
+		if (_n0.$ === 'Just') {
+			var x = _n0.a;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var author$project$View$algorithm = function (model) {
+	var note = _Utils_eq(model.current, -1) ? (-1) : A2(elm$core$Basics$modBy, 12, (model.current - model.tonality) + 12);
+	var _n0 = model.mode;
+	if (_n0.$ === 'Major') {
+		return A2(
+			elm$core$List$filterMap,
+			function (c) {
+				return A2(
+					elm$core$List$member,
+					note,
+					author$project$Types$major(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+			},
+			author$project$Types$majorChords);
+	} else {
+		return A2(
+			elm$core$List$filterMap,
+			function (c) {
+				return A2(
+					elm$core$List$member,
+					note,
+					author$project$Types$minor(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+			},
+			author$project$Types$minorChords);
+	}
+};
+var author$project$Types$ChangeTheory = function (a) {
+	return {$: 'ChangeTheory', a: a};
+};
+var author$project$Types$DownloadTheory = {$: 'DownloadTheory'};
+var elm$json$Json$Decode$map = _Json_map1;
+var elm$json$Json$Decode$map2 = _Json_map2;
+var elm$json$Json$Decode$succeed = _Json_succeed;
+var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
+	switch (handler.$) {
+		case 'Normal':
+			return 0;
+		case 'MayStopPropagation':
+			return 1;
+		case 'MayPreventDefault':
+			return 2;
+		default:
+			return 3;
+	}
+};
+var elm$html$Html$option = _VirtualDom_node('option');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var author$project$View$intToOption = function (v) {
+	return A2(
+		elm$html$Html$option,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$value(
+				elm$core$String$fromInt(v))
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text(
+				elm$core$String$fromInt(v))
+			]));
+};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$select = _VirtualDom_node('select');
+var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
+	});
+var elm$json$Json$Decode$string = _Json_decodeString;
+var elm$html$Html$Events$targetValue = A2(
+	elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	elm$json$Json$Decode$string);
+var elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			elm$json$Json$Decode$map,
+			elm$html$Html$Events$alwaysStop,
+			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
+};
+var author$project$View$lessons = A2(
+	elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			elm$html$Html$text('Lección'),
+			A2(
+			elm$html$Html$select,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onInput(author$project$Types$ChangeTheory),
+					A2(elm$html$Html$Attributes$style, 'margin', '0px 20px')
+				]),
+			A2(
+				elm$core$List$map,
+				author$project$View$intToOption,
+				A2(elm$core$List$range, 1, 16))),
+			A2(
+			elm$html$Html$button,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onClick(author$project$Types$DownloadTheory)
+				]),
+			_List_fromArray(
+				[
+					elm$html$Html$text('Descargar teoría')
+				]))
+		]));
+var author$project$Types$Input = function (a) {
+	return {$: 'Input', a: a};
+};
+var author$project$View$toSNote = function (k) {
+	switch (k) {
+		case 0:
+			return 'Do';
+		case 1:
+			return 'Do#';
+		case 2:
+			return 'Re';
+		case 3:
+			return 'Reb';
+		case 4:
+			return 'Mi';
+		case 5:
+			return 'Fa';
+		case 6:
+			return 'Fa#';
+		case 7:
+			return 'Sol';
+		case 8:
+			return 'Sol#';
+		case 9:
+			return 'La';
+		case 10:
+			return 'Sib';
+		case 11:
+			return 'Si';
+		default:
+			return ' ';
+	}
+};
+var author$project$View$noteToOption = function (v) {
+	return A2(
+		elm$html$Html$option,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$value(
+				elm$core$String$fromInt(v))
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text(
+				author$project$View$toSNote(v))
+			]));
+};
+var elm$html$Html$br = _VirtualDom_node('br');
+var elm$html$Html$span = _VirtualDom_node('span');
+var author$project$View$selection = function (model) {
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2(elm$html$Html$Attributes$style, 'column-count', '3')
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text('Anterior'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
+						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						author$project$View$toSNote(model.previous))
+					])),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				elm$html$Html$text('Actual'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
+						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						author$project$View$toSNote(model.current))
+					])),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				elm$html$Html$text('Siguiente'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$select,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onInput(author$project$Types$Input)
+					]),
+				A2(
+					elm$core$List$map,
+					author$project$View$noteToOption,
+					A2(elm$core$List$range, -1, 11))),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil)
+			]));
+};
+var author$project$View$title = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'font-size', '30px'),
+			A2(elm$html$Html$Attributes$style, 'margin', '50px 0px')
+		]),
+	_List_fromArray(
+		[
+			elm$html$Html$text('Asistente Armónico')
+		]));
+var author$project$Types$ChangeMode = function (a) {
+	return {$: 'ChangeMode', a: a};
+};
+var author$project$Types$ChangeTon = function (a) {
+	return {$: 'ChangeTon', a: a};
+};
+var author$project$Types$Minor = {$: 'Minor'};
+var elm$html$Html$input = _VirtualDom_node('input');
+var elm$html$Html$label = _VirtualDom_node('label');
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$checked = elm$html$Html$Attributes$boolProperty('checked');
+var elm$html$Html$Attributes$name = elm$html$Html$Attributes$stringProperty('name');
+var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
+var author$project$View$tonality = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'column-count', '2')
+		]),
+	_List_fromArray(
+		[
+			elm$html$Html$text(' Tonalidad '),
+			A2(elm$html$Html$br, _List_Nil, _List_Nil),
+			A2(
+			elm$html$Html$select,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onInput(author$project$Types$ChangeTon)
+				]),
+			A2(
+				elm$core$List$map,
+				author$project$View$noteToOption,
+				A2(elm$core$List$range, 0, 11))),
+			A2(
+			elm$html$Html$br,
+			_List_fromArray(
+				[
+					A2(elm$html$Html$Attributes$style, 'margin-bottom', '30px')
+				]),
+			_List_Nil),
+			A2(
+			elm$html$Html$label,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$input,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$type_('radio'),
+							elm$html$Html$Attributes$name('mode'),
+							elm$html$Html$Attributes$checked(true),
+							elm$html$Html$Events$onClick(
+							author$project$Types$ChangeMode(author$project$Types$Major))
+						]),
+					_List_Nil),
+					elm$html$Html$text(' Mayor ')
+				])),
+			A2(elm$html$Html$br, _List_Nil, _List_Nil),
+			A2(
+			elm$html$Html$label,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$input,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$type_('radio'),
+							elm$html$Html$Attributes$name('mode'),
+							elm$html$Html$Attributes$checked(false),
+							elm$html$Html$Events$onClick(
+							author$project$Types$ChangeMode(author$project$Types$Minor))
+						]),
+					_List_Nil),
+					elm$html$Html$text(' Menor')
+				]))
+		]));
+var elm$browser$Browser$Document = F2(
+	function (title, body) {
+		return {body: body, title: title};
+	});
+var elm$html$Html$p = _VirtualDom_node('p');
+var author$project$View$view = function (model) {
+	return A2(
+		elm$browser$Browser$Document,
+		'Asistente Armónico',
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'text-align', 'center')
+					]),
+				_List_fromArray(
+					[
+						author$project$View$title,
+						author$project$View$tonality,
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$selection(model),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						function (l) {
+						return A2(elm$html$Html$div, _List_Nil, l);
+					}(
+						A2(
+							elm$core$List$map,
+							function (c) {
+								return A2(
+									elm$html$Html$p,
+									_List_Nil,
+									_List_fromArray(
+										[
+											elm$html$Html$text(
+											author$project$Types$fromChord(c))
+										]));
+							},
+							author$project$View$algorithm(model))),
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(author$project$Types$Reset)
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('Reseteo')
+							])),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$lessons
+					]))
+			]));
+};
+var elm$browser$Browser$External = function (a) {
+	return {$: 'External', a: a};
+};
+var elm$browser$Browser$Internal = function (a) {
+	return {$: 'Internal', a: a};
+};
+var elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
 var elm$core$String$length = _String_length;
 var elm$core$String$slice = _String_slice;
 var elm$core$String$dropLeft = F2(
@@ -5029,7 +5916,6 @@ var elm$core$String$left = F2(
 		return (n < 1) ? '' : A3(elm$core$String$slice, 0, n, string);
 	});
 var elm$core$String$contains = _String_contains;
-var elm$core$String$toInt = _String_toInt;
 var elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
 		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};

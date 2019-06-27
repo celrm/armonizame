@@ -5,16 +5,22 @@ import File.Download
 import Json.Decode exposing (Decoder, field, list)
 import Http
 import File exposing (File)
+import Task
+import Stack exposing (push, pop, Stack)
+import Browser.Events as Keyboard
+import Json.Decode as D
 
 init : () -> (Model, Cmd Msg)
 init _ =
   ( { mode = Major
-    , tonality = 0
-    , previous = -1
+    , tonic = 0
+    , previous = push -2 Stack.initialise
     , current = -1
-    , next = -1
+    , new = -1
+    , next = push -2 Stack.initialise
     , output = []
-    , theory = 0
+    , theory = 1
+    , key = ""
     }
   , Cmd.none
   )
@@ -24,7 +30,7 @@ algorithm model =
   let note =
         if model.current == -1
           then -1
-          else modBy 12 (model.current - model.tonality + 12)
+          else modBy 12 (model.current - model.tonic + 12)
     in
   case model.mode of
     Major ->
@@ -34,6 +40,9 @@ algorithm model =
       minorChords
       |> List.filterMap (\c -> if List.member note (minor c) then Just c else Nothing)
 
+maybeToInt : String -> Int
+maybeToInt s = Maybe.withDefault 0 (String.toInt s)
+
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
@@ -41,13 +50,19 @@ update msg model =
         ( { model | mode = m }, Cmd.none )
       ChangeTon s ->
         ( { model |
-            tonality = Maybe.withDefault 0 (String.toInt s)
+            tonic = maybeToInt s
           }, Cmd.none )
       Input s ->
         ( { model
-            | previous = model.current
-            , current = model.next
-            , next = Maybe.withDefault 0 (String.toInt s)
+            | previous = push model.current model.previous
+            , current = model.new
+            , new = maybeToInt s
+            , next = push -2 Stack.initialise
+          }, Task.perform UpdateOutput (Task.succeed ())
+        )
+      UpdateOutput _ ->
+        ( { model
+            | output = algorithm model
           }, Cmd.none )
       ChangeTheory s ->
         let k = Maybe.withDefault 1 (String.toInt s) in
@@ -56,14 +71,56 @@ update msg model =
         ( model, File.Download.url (theoryUrl model.theory))
       Reset ->
         ( { model
-            | previous = -1
+            | previous = push -2 Stack.initialise
             , current = -1
-            , next = -1
-            , output = []
-          }, Cmd.none )
+            , new = -1
+            , next = push -2 Stack.initialise
+          }, Task.perform UpdateOutput (Task.succeed ())
+        )
+      Previous ->
+          ( { model
+              | previous = Tuple.second <| pop model.previous
+              , current = top model.previous
+              , new = model.current
+              , next = push model.new model.next
+            }, Task.perform UpdateOutput (Task.succeed ())
+          )
+      Next ->
+        ( { model
+              | previous = push model.current model.previous
+              , current = model.new
+              , new = top model.next
+              , next = Tuple.second <| pop model.next
+          }, Task.perform UpdateOutput (Task.succeed ())
+        )
+      KeyDown k ->
+        if String.contains k "awsedftgyhuj"
+            then
+              ( {model | key = k}, Task.perform Input (Task.succeed (key k)) )
+            else
+              ( model, Cmd.none )
+      KeyUp ->
+        ( {model | key = ""}, Cmd.none )
 
 dataDecoder : Decoder File
 dataDecoder = File.decoder
+
+key : String -> String
+key s =
+  case s of
+    "a" -> "0"
+    "w" -> "1"
+    "s" -> "2"
+    "e" -> "3"
+    "d" -> "4"
+    "f" -> "5"
+    "t" -> "6"
+    "g" -> "7"
+    "y" -> "8"
+    "h" -> "9"
+    "u" -> "10"
+    "j" -> "11"
+    otherwise -> ""
 
 theoryUrl : Int -> String
 theoryUrl k =
@@ -88,4 +145,7 @@ theoryUrl k =
 
 subscriptions : Model -> Sub Msg
 subscriptions model =
-    Sub.none
+    Sub.batch
+    [ Keyboard.onKeyDown (D.map KeyDown (D.field "key" D.string))
+    , Keyboard.onKeyUp (D.succeed KeyUp)
+    ]

@@ -3,25 +3,37 @@ module Types exposing (..)
 import Http
 import Bytes exposing (Bytes)
 import File exposing (File)
+import Stack exposing (Stack)
+
+
+top : Stack Int -> Int
+top s = Maybe.withDefault 0 (Stack.top s)
 
 type Msg
   = ChangeMode Mode
   | ChangeTon String
   | Input String
+  | UpdateOutput ()
   | ChangeTheory String
   | DownloadTheory
   | Reset
+  | Previous
+  | Next
+  | KeyDown String
+  | KeyUp
 
 type Mode = Major | Minor
 
 type alias Model =
   { mode : Mode
-  , tonality : Int
-  , previous : Int
+  , tonic : Int
+  , previous : Stack Int
   , current : Int
-  , next : Int
+  , new : Int
+  , next : Stack Int
   , output : List Chord
   , theory : Int
+  , key : String
   }
 
 major : Chord -> List Int

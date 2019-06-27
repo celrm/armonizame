@@ -2324,184 +2324,6 @@ function _Platform_mergeExportsDebug(moduleName, obj, exports)
 
 
 
-// DECODER
-
-var _File_decoder = _Json_decodePrim(function(value) {
-	// NOTE: checks if `File` exists in case this is run on node
-	return (typeof File !== 'undefined' && value instanceof File)
-		? elm$core$Result$Ok(value)
-		: _Json_expecting('a FILE', value);
-});
-
-
-// METADATA
-
-function _File_name(file) { return file.name; }
-function _File_mime(file) { return file.type; }
-function _File_size(file) { return file.size; }
-
-function _File_lastModified(file)
-{
-	return elm$time$Time$millisToPosix(file.lastModified);
-}
-
-
-// DOWNLOAD
-
-var _File_downloadNode;
-
-function _File_getDownloadNode()
-{
-	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
-}
-
-var _File_download = F3(function(name, mime, content)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var blob = new Blob([content], {type: mime});
-
-		// for IE10+
-		if (navigator.msSaveOrOpenBlob)
-		{
-			navigator.msSaveOrOpenBlob(blob, name);
-			return;
-		}
-
-		// for HTML5
-		var node = _File_getDownloadNode();
-		var objectUrl = URL.createObjectURL(blob);
-		node.href = objectUrl;
-		node.download = name;
-		_File_click(node);
-		URL.revokeObjectURL(objectUrl);
-	});
-});
-
-function _File_downloadUrl(href)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var node = _File_getDownloadNode();
-		node.href = href;
-		node.download = '';
-		node.origin === location.origin || (node.target = '_blank');
-		_File_click(node);
-	});
-}
-
-
-// IE COMPATIBILITY
-
-function _File_makeBytesSafeForInternetExplorer(bytes)
-{
-	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
-	// all other browsers can just run `new Blob([bytes])` directly with no problem
-	//
-	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
-}
-
-function _File_click(node)
-{
-	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
-	// all other browsers have MouseEvent and do not need this conditional stuff
-	//
-	if (typeof MouseEvent === 'function')
-	{
-		node.dispatchEvent(new MouseEvent('click'));
-	}
-	else
-	{
-		var event = document.createEvent('MouseEvents');
-		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
-		document.body.appendChild(node);
-		node.dispatchEvent(event);
-		document.body.removeChild(node);
-	}
-}
-
-
-// UPLOAD
-
-var _File_node;
-
-function _File_uploadOne(mimes)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		_File_node = document.createElement('input');
-		_File_node.type = 'file';
-		_File_node.accept = A2(elm$core$String$join, ',', mimes);
-		_File_node.addEventListener('change', function(event)
-		{
-			callback(_Scheduler_succeed(event.target.files[0]));
-		});
-		_File_click(_File_node);
-	});
-}
-
-function _File_uploadOneOrMore(mimes)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		_File_node = document.createElement('input');
-		_File_node.type = 'file';
-		_File_node.multiple = true;
-		_File_node.accept = A2(elm$core$String$join, ',', mimes);
-		_File_node.addEventListener('change', function(event)
-		{
-			var elmFiles = _List_fromArray(event.target.files);
-			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
-		});
-		_File_click(_File_node);
-	});
-}
-
-
-// CONTENT
-
-function _File_toString(blob)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var reader = new FileReader();
-		reader.addEventListener('loadend', function() {
-			callback(_Scheduler_succeed(reader.result));
-		});
-		reader.readAsText(blob);
-		return function() { reader.abort(); };
-	});
-}
-
-function _File_toBytes(blob)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var reader = new FileReader();
-		reader.addEventListener('loadend', function() {
-			callback(_Scheduler_succeed(new DataView(reader.result)));
-		});
-		reader.readAsArrayBuffer(blob);
-		return function() { reader.abort(); };
-	});
-}
-
-function _File_toUrl(blob)
-{
-	return _Scheduler_binding(function(callback)
-	{
-		var reader = new FileReader();
-		reader.addEventListener('loadend', function() {
-			callback(_Scheduler_succeed(reader.result));
-		});
-		reader.readAsDataURL(blob);
-		return function() { reader.abort(); };
-	});
-}
-
-
-
-
 
 // HELPERS
 
@@ -4498,6 +4320,184 @@ function _Browser_load(url)
 		}
 	}));
 }
+
+
+
+// DECODER
+
+var _File_decoder = _Json_decodePrim(function(value) {
+	// NOTE: checks if `File` exists in case this is run on node
+	return (typeof File !== 'undefined' && value instanceof File)
+		? elm$core$Result$Ok(value)
+		: _Json_expecting('a FILE', value);
+});
+
+
+// METADATA
+
+function _File_name(file) { return file.name; }
+function _File_mime(file) { return file.type; }
+function _File_size(file) { return file.size; }
+
+function _File_lastModified(file)
+{
+	return elm$time$Time$millisToPosix(file.lastModified);
+}
+
+
+// DOWNLOAD
+
+var _File_downloadNode;
+
+function _File_getDownloadNode()
+{
+	return _File_downloadNode || (_File_downloadNode = document.createElement('a'));
+}
+
+var _File_download = F3(function(name, mime, content)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var blob = new Blob([content], {type: mime});
+
+		// for IE10+
+		if (navigator.msSaveOrOpenBlob)
+		{
+			navigator.msSaveOrOpenBlob(blob, name);
+			return;
+		}
+
+		// for HTML5
+		var node = _File_getDownloadNode();
+		var objectUrl = URL.createObjectURL(blob);
+		node.href = objectUrl;
+		node.download = name;
+		_File_click(node);
+		URL.revokeObjectURL(objectUrl);
+	});
+});
+
+function _File_downloadUrl(href)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var node = _File_getDownloadNode();
+		node.href = href;
+		node.download = '';
+		node.origin === location.origin || (node.target = '_blank');
+		_File_click(node);
+	});
+}
+
+
+// IE COMPATIBILITY
+
+function _File_makeBytesSafeForInternetExplorer(bytes)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/10
+	// all other browsers can just run `new Blob([bytes])` directly with no problem
+	//
+	return new Uint8Array(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+}
+
+function _File_click(node)
+{
+	// only needed by IE10 and IE11 to fix https://github.com/elm/file/issues/11
+	// all other browsers have MouseEvent and do not need this conditional stuff
+	//
+	if (typeof MouseEvent === 'function')
+	{
+		node.dispatchEvent(new MouseEvent('click'));
+	}
+	else
+	{
+		var event = document.createEvent('MouseEvents');
+		event.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+		document.body.appendChild(node);
+		node.dispatchEvent(event);
+		document.body.removeChild(node);
+	}
+}
+
+
+// UPLOAD
+
+var _File_node;
+
+function _File_uploadOne(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			callback(_Scheduler_succeed(event.target.files[0]));
+		});
+		_File_click(_File_node);
+	});
+}
+
+function _File_uploadOneOrMore(mimes)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		_File_node = document.createElement('input');
+		_File_node.type = 'file';
+		_File_node.multiple = true;
+		_File_node.accept = A2(elm$core$String$join, ',', mimes);
+		_File_node.addEventListener('change', function(event)
+		{
+			var elmFiles = _List_fromArray(event.target.files);
+			callback(_Scheduler_succeed(_Utils_Tuple2(elmFiles.a, elmFiles.b)));
+		});
+		_File_click(_File_node);
+	});
+}
+
+
+// CONTENT
+
+function _File_toString(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsText(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toBytes(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(new DataView(reader.result)));
+		});
+		reader.readAsArrayBuffer(blob);
+		return function() { reader.abort(); };
+	});
+}
+
+function _File_toUrl(blob)
+{
+	return _Scheduler_binding(function(callback)
+	{
+		var reader = new FileReader();
+		reader.addEventListener('loadend', function() {
+			callback(_Scheduler_succeed(reader.result));
+		});
+		reader.readAsDataURL(blob);
+		return function() { reader.abort(); };
+	});
+}
+
 var author$project$Types$Major = {$: 'Major'};
 var elm$core$Basics$negate = function (n) {
 	return -n;
@@ -4979,64 +4979,93 @@ var elm$json$Json$Decode$errorToStringHelp = F2(
 	});
 var elm$core$Platform$Cmd$batch = _Platform_batch;
 var elm$core$Platform$Cmd$none = elm$core$Platform$Cmd$batch(_List_Nil);
+var elm$core$Basics$identity = function (x) {
+	return x;
+};
+var mhoare$elm_stack$Stack$Stack = function (a) {
+	return {$: 'Stack', a: a};
+};
+var mhoare$elm_stack$Stack$initialise = mhoare$elm_stack$Stack$Stack(_List_Nil);
+var mhoare$elm_stack$Stack$push = F2(
+	function (item, _n0) {
+		var stack = _n0.a;
+		return mhoare$elm_stack$Stack$Stack(
+			A2(elm$core$List$cons, item, stack));
+	});
 var author$project$State$init = function (_n0) {
 	return _Utils_Tuple2(
-		{current: -1, mode: author$project$Types$Major, next: -1, output: _List_Nil, previous: -1, theory: 0, tonality: 0},
+		{
+			current: -1,
+			key: '',
+			mode: author$project$Types$Major,
+			_new: -1,
+			next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
+			output: _List_Nil,
+			previous: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
+			theory: 1,
+			tonic: 0
+		},
 		elm$core$Platform$Cmd$none);
 };
-var elm$core$Platform$Sub$batch = _Platform_batch;
-var elm$core$Platform$Sub$none = elm$core$Platform$Sub$batch(_List_Nil);
-var author$project$State$subscriptions = function (model) {
-	return elm$core$Platform$Sub$none;
+var author$project$Types$KeyDown = function (a) {
+	return {$: 'KeyDown', a: a};
 };
-var author$project$State$theoryUrl = function (k) {
-	switch (k) {
-		case 1:
-			return 'http://haciendomusica.com/Armonia2/Tema%2001%20-%20Escritura%20para%20coro.pdf';
-		case 2:
-			return 'http://haciendomusica.com/Armonia2/Tema%2002%20-%20El%20enlace%20de%20acordes.pdf';
-		case 3:
-			return 'http://haciendomusica.com/Armonia2/Tema%2003%20-%20El%20Sistema%20Armonico%20Basico.pdf';
-		case 4:
-			return 'http://haciendomusica.com/Armonia2/Tema%2004%20-%201a%20Inversion%20del%20acorde.pdf';
-		case 5:
-			return 'http://haciendomusica.com/Armonia2/Tema%2005%20-%20El%20acorde%20de%207a%20de%20dominante.pdf';
-		case 6:
-			return 'http://haciendomusica.com/Armonia2/Tema%2006%20-%20Las%20Cadencias.pdf';
-		case 7:
-			return 'http://haciendomusica.com/Armonia2/Tema%2007%20-%20Las%20Dominantes%20Secundarias.pdf';
-		case 8:
-			return 'http://haciendomusica.com/Armonia2/Tema%2008%20-%20Las%20Notas%20Extranas%20-%20Introduccion.pdf';
-		case 9:
-			return 'http://haciendomusica.com/Armonia2/Tema%2009%20-%20El%20Modo%20Menor.pdf';
-		case 10:
-			return 'http://haciendomusica.com/Armonia2/Tema%2010%20-%202a%20Inversion%20del%20acorde.pdf';
-		case 11:
-			return 'http://haciendomusica.com/Armonia2/Tema%2011%20-%20Modulacion%20por%20transformacion.pdf';
-		case 12:
-			return 'http://haciendomusica.com/Armonia2/Tema%2012%20-%20El%20V%20grado%20con%209a%20-%20El%20VII%20grado%20con%207a.pdf';
-		case 13:
-			return 'http://haciendomusica.com/Armonia2/Tema%2013%20-%20Progresiones%20y%20series%20de%206as.pdf';
-		case 14:
-			return 'http://haciendomusica.com/Armonia2/Tema%2014%20-%20Las%20Notas%20Extranas%20-%202a%20parte.pdf';
-		case 15:
-			return 'http://haciendomusica.com/Armonia2/Tema%2015%20-%207a%20Diatonica%20y%20Series%20de%207as.pdf';
-		case 16:
-			return 'http://haciendomusica.com/Armonia2/Tema%2016%20-%20Armonia%20Cromatica%20y%20Alterada.pdf';
-		default:
-			return '';
+var author$project$Types$KeyUp = {$: 'KeyUp'};
+var elm$browser$Browser$Events$Document = {$: 'Document'};
+var elm$browser$Browser$Events$MySub = F3(
+	function (a, b, c) {
+		return {$: 'MySub', a: a, b: b, c: c};
+	});
+var elm$browser$Browser$Events$State = F2(
+	function (subs, pids) {
+		return {pids: pids, subs: subs};
+	});
+var elm$core$Dict$RBEmpty_elm_builtin = {$: 'RBEmpty_elm_builtin'};
+var elm$core$Dict$empty = elm$core$Dict$RBEmpty_elm_builtin;
+var elm$core$Task$succeed = _Scheduler_succeed;
+var elm$browser$Browser$Events$init = elm$core$Task$succeed(
+	A2(elm$browser$Browser$Events$State, _List_Nil, elm$core$Dict$empty));
+var elm$browser$Browser$Events$nodeToKey = function (node) {
+	if (node.$ === 'Document') {
+		return 'd_';
+	} else {
+		return 'w_';
 	}
 };
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
+var elm$browser$Browser$Events$addKey = function (sub) {
+	var node = sub.a;
+	var name = sub.b;
+	return _Utils_Tuple2(
+		_Utils_ap(
+			elm$browser$Browser$Events$nodeToKey(node),
+			name),
+		sub);
+};
+var elm$browser$Browser$Events$Event = F2(
+	function (key, event) {
+		return {event: event, key: key};
 	});
-var elm$core$String$toInt = _String_toInt;
+var elm$core$Platform$sendToSelf = _Platform_sendToSelf;
+var elm$core$Task$andThen = _Scheduler_andThen;
+var elm$core$Task$map = F2(
+	function (func, taskA) {
+		return A2(
+			elm$core$Task$andThen,
+			function (a) {
+				return elm$core$Task$succeed(
+					func(a));
+			},
+			taskA);
+	});
+var elm$browser$Browser$External = function (a) {
+	return {$: 'External', a: a};
+};
+var elm$browser$Browser$Internal = function (a) {
+	return {$: 'Internal', a: a};
+};
+var elm$browser$Browser$Dom$NotFound = function (a) {
+	return {$: 'NotFound', a: a};
+};
 var elm$core$Basics$never = function (_n0) {
 	never:
 	while (true) {
@@ -5046,13 +5075,9 @@ var elm$core$Basics$never = function (_n0) {
 		continue never;
 	}
 };
-var elm$core$Basics$identity = function (x) {
-	return x;
-};
 var elm$core$Task$Perform = function (a) {
 	return {$: 'Perform', a: a};
 };
-var elm$core$Task$succeed = _Scheduler_succeed;
 var elm$core$Task$init = elm$core$Task$succeed(_Utils_Tuple0);
 var elm$core$List$foldrHelper = F4(
 	function (fn, acc, ctr, ls) {
@@ -5123,17 +5148,6 @@ var elm$core$List$map = F2(
 			_List_Nil,
 			xs);
 	});
-var elm$core$Task$andThen = _Scheduler_andThen;
-var elm$core$Task$map = F2(
-	function (func, taskA) {
-		return A2(
-			elm$core$Task$andThen,
-			function (a) {
-				return elm$core$Task$succeed(
-					func(a));
-			},
-			taskA);
-	});
 var elm$core$Task$map2 = F3(
 	function (func, taskA, taskB) {
 		return A2(
@@ -5197,119 +5211,6 @@ var elm$core$Task$perform = F2(
 			elm$core$Task$Perform(
 				A2(elm$core$Task$map, toMessage, task)));
 	});
-var elm$time$Time$Posix = function (a) {
-	return {$: 'Posix', a: a};
-};
-var elm$time$Time$millisToPosix = elm$time$Time$Posix;
-var elm$file$File$Download$url = function (href) {
-	return A2(
-		elm$core$Task$perform,
-		elm$core$Basics$never,
-		_File_downloadUrl(href));
-};
-var author$project$State$update = F2(
-	function (msg, model) {
-		switch (msg.$) {
-			case 'ChangeMode':
-				var m = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{mode: m}),
-					elm$core$Platform$Cmd$none);
-			case 'ChangeTon':
-				var s = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							tonality: A2(
-								elm$core$Maybe$withDefault,
-								0,
-								elm$core$String$toInt(s))
-						}),
-					elm$core$Platform$Cmd$none);
-			case 'Input':
-				var s = msg.a;
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{
-							current: model.next,
-							next: A2(
-								elm$core$Maybe$withDefault,
-								0,
-								elm$core$String$toInt(s)),
-							previous: model.current
-						}),
-					elm$core$Platform$Cmd$none);
-			case 'ChangeTheory':
-				var s = msg.a;
-				var k = A2(
-					elm$core$Maybe$withDefault,
-					1,
-					elm$core$String$toInt(s));
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{theory: k}),
-					elm$core$Platform$Cmd$none);
-			case 'DownloadTheory':
-				return _Utils_Tuple2(
-					model,
-					elm$file$File$Download$url(
-						author$project$State$theoryUrl(model.theory)));
-			default:
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{current: -1, next: -1, output: _List_Nil, previous: -1}),
-					elm$core$Platform$Cmd$none);
-		}
-	});
-var author$project$Types$Reset = {$: 'Reset'};
-var author$project$Types$fromChord = function (s) {
-	switch (s.$) {
-		case 'I':
-			return 'I';
-		case 'II':
-			return 'II';
-		case 'IIN':
-			return 'IIN';
-		case 'IV':
-			return 'IV';
-		case 'V':
-			return 'V';
-		case 'V9':
-			return 'V9';
-		case 'VI':
-			return 'VI';
-		case 'VII':
-			return 'VII';
-		case 'V_II':
-			return 'V_II';
-		case 'VII_II':
-			return 'VII_II';
-		case 'V_IV':
-			return 'V_IV';
-		case 'VII_IV':
-			return 'VII_IV';
-		case 'V_V':
-			return 'V_V';
-		case 'VII_V':
-			return 'VII_V';
-		case 'V_VI':
-			return 'V_VI';
-		case 'VII_VI':
-			return 'VII_VI';
-		default:
-			return '';
-	}
-};
-var author$project$Types$ChangeTheory = function (a) {
-	return {$: 'ChangeTheory', a: a};
-};
-var author$project$Types$DownloadTheory = {$: 'DownloadTheory'};
 var elm$json$Json$Decode$map = _Json_map1;
 var elm$json$Json$Decode$map2 = _Json_map2;
 var elm$json$Json$Decode$succeed = _Json_succeed;
@@ -5324,378 +5225,6 @@ var elm$virtual_dom$VirtualDom$toHandlerInt = function (handler) {
 		default:
 			return 3;
 	}
-};
-var elm$html$Html$option = _VirtualDom_node('option');
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
-var elm$json$Json$Encode$string = _Json_wrap;
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
-	});
-var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
-var author$project$View$intToOption = function (v) {
-	return A2(
-		elm$html$Html$option,
-		_List_fromArray(
-			[
-				elm$html$Html$Attributes$value(
-				elm$core$String$fromInt(v))
-			]),
-		_List_fromArray(
-			[
-				elm$html$Html$text(
-				elm$core$String$fromInt(v))
-			]));
-};
-var elm$html$Html$button = _VirtualDom_node('button');
-var elm$html$Html$div = _VirtualDom_node('div');
-var elm$html$Html$select = _VirtualDom_node('select');
-var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
-var elm$virtual_dom$VirtualDom$Normal = function (a) {
-	return {$: 'Normal', a: a};
-};
-var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
-var elm$html$Html$Events$on = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$Normal(decoder));
-	});
-var elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'click',
-		elm$json$Json$Decode$succeed(msg));
-};
-var elm$html$Html$Events$alwaysStop = function (x) {
-	return _Utils_Tuple2(x, true);
-};
-var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
-	return {$: 'MayStopPropagation', a: a};
-};
-var elm$html$Html$Events$stopPropagationOn = F2(
-	function (event, decoder) {
-		return A2(
-			elm$virtual_dom$VirtualDom$on,
-			event,
-			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
-	});
-var elm$json$Json$Decode$field = _Json_decodeField;
-var elm$json$Json$Decode$at = F2(
-	function (fields, decoder) {
-		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
-	});
-var elm$json$Json$Decode$string = _Json_decodeString;
-var elm$html$Html$Events$targetValue = A2(
-	elm$json$Json$Decode$at,
-	_List_fromArray(
-		['target', 'value']),
-	elm$json$Json$Decode$string);
-var elm$html$Html$Events$onInput = function (tagger) {
-	return A2(
-		elm$html$Html$Events$stopPropagationOn,
-		'input',
-		A2(
-			elm$json$Json$Decode$map,
-			elm$html$Html$Events$alwaysStop,
-			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
-};
-var author$project$View$lessons = A2(
-	elm$html$Html$div,
-	_List_Nil,
-	_List_fromArray(
-		[
-			elm$html$Html$text('Lección'),
-			A2(
-			elm$html$Html$select,
-			_List_fromArray(
-				[
-					elm$html$Html$Events$onInput(author$project$Types$ChangeTheory),
-					A2(elm$html$Html$Attributes$style, 'margin', '0px 20px')
-				]),
-			A2(
-				elm$core$List$map,
-				author$project$View$intToOption,
-				A2(elm$core$List$range, 1, 16))),
-			A2(
-			elm$html$Html$button,
-			_List_fromArray(
-				[
-					elm$html$Html$Events$onClick(author$project$Types$DownloadTheory)
-				]),
-			_List_fromArray(
-				[
-					elm$html$Html$text('Descargar teoría')
-				]))
-		]));
-var author$project$Types$Input = function (a) {
-	return {$: 'Input', a: a};
-};
-var author$project$View$toSNote = function (k) {
-	switch (k) {
-		case 0:
-			return 'Do';
-		case 1:
-			return 'Do#';
-		case 2:
-			return 'Re';
-		case 3:
-			return 'Reb';
-		case 4:
-			return 'Mi';
-		case 5:
-			return 'Fa';
-		case 6:
-			return 'Fa#';
-		case 7:
-			return 'Sol';
-		case 8:
-			return 'Sol#';
-		case 9:
-			return 'La';
-		case 10:
-			return 'Sib';
-		case 11:
-			return 'Si';
-		default:
-			return ' ';
-	}
-};
-var author$project$View$noteToOption = function (v) {
-	return A2(
-		elm$html$Html$option,
-		_List_fromArray(
-			[
-				elm$html$Html$Attributes$value(
-				elm$core$String$fromInt(v))
-			]),
-		_List_fromArray(
-			[
-				elm$html$Html$text(
-				author$project$View$toSNote(v))
-			]));
-};
-var elm$html$Html$br = _VirtualDom_node('br');
-var elm$html$Html$span = _VirtualDom_node('span');
-var author$project$View$selection = function (model) {
-	return A2(
-		elm$html$Html$div,
-		_List_fromArray(
-			[
-				A2(elm$html$Html$Attributes$style, 'column-count', '3')
-			]),
-		_List_fromArray(
-			[
-				elm$html$Html$text('Anterior'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$span,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
-						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(
-						author$project$View$toSNote(model.previous))
-					])),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				elm$html$Html$text('Actual'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$span,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
-						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(
-						author$project$View$toSNote(model.current))
-					])),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				elm$html$Html$text('Siguiente'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$select,
-				_List_fromArray(
-					[
-						elm$html$Html$Events$onInput(author$project$Types$Input)
-					]),
-				A2(
-					elm$core$List$map,
-					author$project$View$noteToOption,
-					A2(elm$core$List$range, -1, 11))),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil)
-			]));
-};
-var author$project$View$title = A2(
-	elm$html$Html$div,
-	_List_fromArray(
-		[
-			A2(elm$html$Html$Attributes$style, 'font-size', '30px'),
-			A2(elm$html$Html$Attributes$style, 'margin', '50px 0px')
-		]),
-	_List_fromArray(
-		[
-			elm$html$Html$text('Asistente Armónico')
-		]));
-var author$project$Types$ChangeMode = function (a) {
-	return {$: 'ChangeMode', a: a};
-};
-var author$project$Types$ChangeTon = function (a) {
-	return {$: 'ChangeTon', a: a};
-};
-var author$project$Types$Minor = {$: 'Minor'};
-var elm$html$Html$input = _VirtualDom_node('input');
-var elm$html$Html$label = _VirtualDom_node('label');
-var elm$json$Json$Encode$bool = _Json_wrap;
-var elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$bool(bool));
-	});
-var elm$html$Html$Attributes$checked = elm$html$Html$Attributes$boolProperty('checked');
-var elm$html$Html$Attributes$name = elm$html$Html$Attributes$stringProperty('name');
-var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
-var author$project$View$tonality = A2(
-	elm$html$Html$div,
-	_List_fromArray(
-		[
-			A2(elm$html$Html$Attributes$style, 'column-count', '2')
-		]),
-	_List_fromArray(
-		[
-			elm$html$Html$text(' Tonalidad '),
-			A2(elm$html$Html$br, _List_Nil, _List_Nil),
-			A2(
-			elm$html$Html$select,
-			_List_fromArray(
-				[
-					elm$html$Html$Events$onInput(author$project$Types$ChangeTon)
-				]),
-			A2(
-				elm$core$List$map,
-				author$project$View$noteToOption,
-				A2(elm$core$List$range, 0, 11))),
-			A2(
-			elm$html$Html$br,
-			_List_fromArray(
-				[
-					A2(elm$html$Html$Attributes$style, 'margin-bottom', '30px')
-				]),
-			_List_Nil),
-			A2(
-			elm$html$Html$label,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					elm$html$Html$input,
-					_List_fromArray(
-						[
-							elm$html$Html$Attributes$type_('radio'),
-							elm$html$Html$Attributes$name('mode'),
-							elm$html$Html$Attributes$checked(true),
-							elm$html$Html$Events$onClick(
-							author$project$Types$ChangeMode(author$project$Types$Major))
-						]),
-					_List_Nil),
-					elm$html$Html$text(' Mayor ')
-				])),
-			A2(elm$html$Html$br, _List_Nil, _List_Nil),
-			A2(
-			elm$html$Html$label,
-			_List_Nil,
-			_List_fromArray(
-				[
-					A2(
-					elm$html$Html$input,
-					_List_fromArray(
-						[
-							elm$html$Html$Attributes$type_('radio'),
-							elm$html$Html$Attributes$name('mode'),
-							elm$html$Html$Attributes$checked(false),
-							elm$html$Html$Events$onClick(
-							author$project$Types$ChangeMode(author$project$Types$Minor))
-						]),
-					_List_Nil),
-					elm$html$Html$text(' Menor')
-				]))
-		]));
-var elm$browser$Browser$Document = F2(
-	function (title, body) {
-		return {body: body, title: title};
-	});
-var elm$html$Html$p = _VirtualDom_node('p');
-var author$project$View$view = function (model) {
-	return A2(
-		elm$browser$Browser$Document,
-		'Asistente Armónico',
-		_List_fromArray(
-			[
-				A2(
-				elm$html$Html$div,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'text-align', 'center')
-					]),
-				_List_fromArray(
-					[
-						author$project$View$title,
-						author$project$View$tonality,
-						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						author$project$View$selection(model),
-						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						function (l) {
-						return A2(elm$html$Html$div, _List_Nil, l);
-					}(
-						A2(
-							elm$core$List$map,
-							function (c) {
-								return A2(
-									elm$html$Html$p,
-									_List_Nil,
-									_List_fromArray(
-										[
-											elm$html$Html$text(c)
-										]));
-							},
-							A2(elm$core$List$map, author$project$Types$fromChord, model.output))),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Types$Reset)
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Reseteo')
-							])),
-						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						author$project$View$lessons
-					]))
-			]));
-};
-var elm$browser$Browser$External = function (a) {
-	return {$: 'External', a: a};
-};
-var elm$browser$Browser$Internal = function (a) {
-	return {$: 'Internal', a: a};
-};
-var elm$browser$Browser$Dom$NotFound = function (a) {
-	return {$: 'NotFound', a: a};
 };
 var elm$core$String$length = _String_length;
 var elm$core$String$slice = _String_slice;
@@ -5719,6 +5248,7 @@ var elm$core$String$left = F2(
 		return (n < 1) ? '' : A3(elm$core$String$slice, 0, n, string);
 	});
 var elm$core$String$contains = _String_contains;
+var elm$core$String$toInt = _String_toInt;
 var elm$url$Url$Url = F6(
 	function (protocol, host, port_, path, query, fragment) {
 		return {fragment: fragment, host: host, path: path, port_: port_, protocol: protocol, query: query};
@@ -5824,6 +5354,1404 @@ var elm$url$Url$fromString = function (str) {
 		elm$url$Url$chompAfterProtocol,
 		elm$url$Url$Https,
 		A2(elm$core$String$dropLeft, 8, str)) : elm$core$Maybe$Nothing);
+};
+var elm$browser$Browser$Events$spawn = F3(
+	function (router, key, _n0) {
+		var node = _n0.a;
+		var name = _n0.b;
+		var actualNode = function () {
+			if (node.$ === 'Document') {
+				return _Browser_doc;
+			} else {
+				return _Browser_window;
+			}
+		}();
+		return A2(
+			elm$core$Task$map,
+			function (value) {
+				return _Utils_Tuple2(key, value);
+			},
+			A3(
+				_Browser_on,
+				actualNode,
+				name,
+				function (event) {
+					return A2(
+						elm$core$Platform$sendToSelf,
+						router,
+						A2(elm$browser$Browser$Events$Event, key, event));
+				}));
+	});
+var elm$core$Dict$Black = {$: 'Black'};
+var elm$core$Dict$RBNode_elm_builtin = F5(
+	function (a, b, c, d, e) {
+		return {$: 'RBNode_elm_builtin', a: a, b: b, c: c, d: d, e: e};
+	});
+var elm$core$Basics$compare = _Utils_compare;
+var elm$core$Dict$Red = {$: 'Red'};
+var elm$core$Dict$balance = F5(
+	function (color, key, value, left, right) {
+		if ((right.$ === 'RBNode_elm_builtin') && (right.a.$ === 'Red')) {
+			var _n1 = right.a;
+			var rK = right.b;
+			var rV = right.c;
+			var rLeft = right.d;
+			var rRight = right.e;
+			if ((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) {
+				var _n3 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var lLeft = left.d;
+				var lRight = left.e;
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					elm$core$Dict$Red,
+					key,
+					value,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, lK, lV, lLeft, lRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, rK, rV, rLeft, rRight));
+			} else {
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					color,
+					rK,
+					rV,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, left, rLeft),
+					rRight);
+			}
+		} else {
+			if ((((left.$ === 'RBNode_elm_builtin') && (left.a.$ === 'Red')) && (left.d.$ === 'RBNode_elm_builtin')) && (left.d.a.$ === 'Red')) {
+				var _n5 = left.a;
+				var lK = left.b;
+				var lV = left.c;
+				var _n6 = left.d;
+				var _n7 = _n6.a;
+				var llK = _n6.b;
+				var llV = _n6.c;
+				var llLeft = _n6.d;
+				var llRight = _n6.e;
+				var lRight = left.e;
+				return A5(
+					elm$core$Dict$RBNode_elm_builtin,
+					elm$core$Dict$Red,
+					lK,
+					lV,
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, llK, llV, llLeft, llRight),
+					A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, key, value, lRight, right));
+			} else {
+				return A5(elm$core$Dict$RBNode_elm_builtin, color, key, value, left, right);
+			}
+		}
+	});
+var elm$core$Dict$insertHelp = F3(
+	function (key, value, dict) {
+		if (dict.$ === 'RBEmpty_elm_builtin') {
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Red, key, value, elm$core$Dict$RBEmpty_elm_builtin, elm$core$Dict$RBEmpty_elm_builtin);
+		} else {
+			var nColor = dict.a;
+			var nKey = dict.b;
+			var nValue = dict.c;
+			var nLeft = dict.d;
+			var nRight = dict.e;
+			var _n1 = A2(elm$core$Basics$compare, key, nKey);
+			switch (_n1.$) {
+				case 'LT':
+					return A5(
+						elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						A3(elm$core$Dict$insertHelp, key, value, nLeft),
+						nRight);
+				case 'EQ':
+					return A5(elm$core$Dict$RBNode_elm_builtin, nColor, nKey, value, nLeft, nRight);
+				default:
+					return A5(
+						elm$core$Dict$balance,
+						nColor,
+						nKey,
+						nValue,
+						nLeft,
+						A3(elm$core$Dict$insertHelp, key, value, nRight));
+			}
+		}
+	});
+var elm$core$Dict$insert = F3(
+	function (key, value, dict) {
+		var _n0 = A3(elm$core$Dict$insertHelp, key, value, dict);
+		if ((_n0.$ === 'RBNode_elm_builtin') && (_n0.a.$ === 'Red')) {
+			var _n1 = _n0.a;
+			var k = _n0.b;
+			var v = _n0.c;
+			var l = _n0.d;
+			var r = _n0.e;
+			return A5(elm$core$Dict$RBNode_elm_builtin, elm$core$Dict$Black, k, v, l, r);
+		} else {
+			var x = _n0;
+			return x;
+		}
+	});
+var elm$core$Dict$fromList = function (assocs) {
+	return A3(
+		elm$core$List$foldl,
+		F2(
+			function (_n0, dict) {
+				var key = _n0.a;
+				var value = _n0.b;
+				return A3(elm$core$Dict$insert, key, value, dict);
+			}),
+		elm$core$Dict$empty,
+		assocs);
+};
+var elm$core$Dict$foldl = F3(
+	function (func, acc, dict) {
+		foldl:
+		while (true) {
+			if (dict.$ === 'RBEmpty_elm_builtin') {
+				return acc;
+			} else {
+				var key = dict.b;
+				var value = dict.c;
+				var left = dict.d;
+				var right = dict.e;
+				var $temp$func = func,
+					$temp$acc = A3(
+					func,
+					key,
+					value,
+					A3(elm$core$Dict$foldl, func, acc, left)),
+					$temp$dict = right;
+				func = $temp$func;
+				acc = $temp$acc;
+				dict = $temp$dict;
+				continue foldl;
+			}
+		}
+	});
+var elm$core$Dict$merge = F6(
+	function (leftStep, bothStep, rightStep, leftDict, rightDict, initialResult) {
+		var stepState = F3(
+			function (rKey, rValue, _n0) {
+				stepState:
+				while (true) {
+					var list = _n0.a;
+					var result = _n0.b;
+					if (!list.b) {
+						return _Utils_Tuple2(
+							list,
+							A3(rightStep, rKey, rValue, result));
+					} else {
+						var _n2 = list.a;
+						var lKey = _n2.a;
+						var lValue = _n2.b;
+						var rest = list.b;
+						if (_Utils_cmp(lKey, rKey) < 0) {
+							var $temp$rKey = rKey,
+								$temp$rValue = rValue,
+								$temp$_n0 = _Utils_Tuple2(
+								rest,
+								A3(leftStep, lKey, lValue, result));
+							rKey = $temp$rKey;
+							rValue = $temp$rValue;
+							_n0 = $temp$_n0;
+							continue stepState;
+						} else {
+							if (_Utils_cmp(lKey, rKey) > 0) {
+								return _Utils_Tuple2(
+									list,
+									A3(rightStep, rKey, rValue, result));
+							} else {
+								return _Utils_Tuple2(
+									rest,
+									A4(bothStep, lKey, lValue, rValue, result));
+							}
+						}
+					}
+				}
+			});
+		var _n3 = A3(
+			elm$core$Dict$foldl,
+			stepState,
+			_Utils_Tuple2(
+				elm$core$Dict$toList(leftDict),
+				initialResult),
+			rightDict);
+		var leftovers = _n3.a;
+		var intermediateResult = _n3.b;
+		return A3(
+			elm$core$List$foldl,
+			F2(
+				function (_n4, result) {
+					var k = _n4.a;
+					var v = _n4.b;
+					return A3(leftStep, k, v, result);
+				}),
+			intermediateResult,
+			leftovers);
+	});
+var elm$core$Dict$union = F2(
+	function (t1, t2) {
+		return A3(elm$core$Dict$foldl, elm$core$Dict$insert, t2, t1);
+	});
+var elm$core$Process$kill = _Scheduler_kill;
+var elm$browser$Browser$Events$onEffects = F3(
+	function (router, subs, state) {
+		var stepRight = F3(
+			function (key, sub, _n6) {
+				var deads = _n6.a;
+				var lives = _n6.b;
+				var news = _n6.c;
+				return _Utils_Tuple3(
+					deads,
+					lives,
+					A2(
+						elm$core$List$cons,
+						A3(elm$browser$Browser$Events$spawn, router, key, sub),
+						news));
+			});
+		var stepLeft = F3(
+			function (_n4, pid, _n5) {
+				var deads = _n5.a;
+				var lives = _n5.b;
+				var news = _n5.c;
+				return _Utils_Tuple3(
+					A2(elm$core$List$cons, pid, deads),
+					lives,
+					news);
+			});
+		var stepBoth = F4(
+			function (key, pid, _n2, _n3) {
+				var deads = _n3.a;
+				var lives = _n3.b;
+				var news = _n3.c;
+				return _Utils_Tuple3(
+					deads,
+					A3(elm$core$Dict$insert, key, pid, lives),
+					news);
+			});
+		var newSubs = A2(elm$core$List$map, elm$browser$Browser$Events$addKey, subs);
+		var _n0 = A6(
+			elm$core$Dict$merge,
+			stepLeft,
+			stepBoth,
+			stepRight,
+			state.pids,
+			elm$core$Dict$fromList(newSubs),
+			_Utils_Tuple3(_List_Nil, elm$core$Dict$empty, _List_Nil));
+		var deadPids = _n0.a;
+		var livePids = _n0.b;
+		var makeNewPids = _n0.c;
+		return A2(
+			elm$core$Task$andThen,
+			function (pids) {
+				return elm$core$Task$succeed(
+					A2(
+						elm$browser$Browser$Events$State,
+						newSubs,
+						A2(
+							elm$core$Dict$union,
+							livePids,
+							elm$core$Dict$fromList(pids))));
+			},
+			A2(
+				elm$core$Task$andThen,
+				function (_n1) {
+					return elm$core$Task$sequence(makeNewPids);
+				},
+				elm$core$Task$sequence(
+					A2(elm$core$List$map, elm$core$Process$kill, deadPids))));
+	});
+var elm$core$List$maybeCons = F3(
+	function (f, mx, xs) {
+		var _n0 = f(mx);
+		if (_n0.$ === 'Just') {
+			var x = _n0.a;
+			return A2(elm$core$List$cons, x, xs);
+		} else {
+			return xs;
+		}
+	});
+var elm$core$List$filterMap = F2(
+	function (f, xs) {
+		return A3(
+			elm$core$List$foldr,
+			elm$core$List$maybeCons(f),
+			_List_Nil,
+			xs);
+	});
+var elm$browser$Browser$Events$onSelfMsg = F3(
+	function (router, _n0, state) {
+		var key = _n0.key;
+		var event = _n0.event;
+		var toMessage = function (_n2) {
+			var subKey = _n2.a;
+			var _n3 = _n2.b;
+			var node = _n3.a;
+			var name = _n3.b;
+			var decoder = _n3.c;
+			return _Utils_eq(subKey, key) ? A2(_Browser_decodeEvent, decoder, event) : elm$core$Maybe$Nothing;
+		};
+		var messages = A2(elm$core$List$filterMap, toMessage, state.subs);
+		return A2(
+			elm$core$Task$andThen,
+			function (_n1) {
+				return elm$core$Task$succeed(state);
+			},
+			elm$core$Task$sequence(
+				A2(
+					elm$core$List$map,
+					elm$core$Platform$sendToApp(router),
+					messages)));
+	});
+var elm$browser$Browser$Events$subMap = F2(
+	function (func, _n0) {
+		var node = _n0.a;
+		var name = _n0.b;
+		var decoder = _n0.c;
+		return A3(
+			elm$browser$Browser$Events$MySub,
+			node,
+			name,
+			A2(elm$json$Json$Decode$map, func, decoder));
+	});
+_Platform_effectManagers['Browser.Events'] = _Platform_createManager(elm$browser$Browser$Events$init, elm$browser$Browser$Events$onEffects, elm$browser$Browser$Events$onSelfMsg, 0, elm$browser$Browser$Events$subMap);
+var elm$browser$Browser$Events$subscription = _Platform_leaf('Browser.Events');
+var elm$browser$Browser$Events$on = F3(
+	function (node, name, decoder) {
+		return elm$browser$Browser$Events$subscription(
+			A3(elm$browser$Browser$Events$MySub, node, name, decoder));
+	});
+var elm$browser$Browser$Events$onKeyDown = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keydown');
+var elm$browser$Browser$Events$onKeyUp = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keyup');
+var elm$core$Platform$Sub$batch = _Platform_batch;
+var elm$json$Json$Decode$field = _Json_decodeField;
+var elm$json$Json$Decode$string = _Json_decodeString;
+var author$project$State$subscriptions = function (model) {
+	return elm$core$Platform$Sub$batch(
+		_List_fromArray(
+			[
+				elm$browser$Browser$Events$onKeyDown(
+				A2(
+					elm$json$Json$Decode$map,
+					author$project$Types$KeyDown,
+					A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string))),
+				elm$browser$Browser$Events$onKeyUp(
+				elm$json$Json$Decode$succeed(author$project$Types$KeyUp))
+			]));
+};
+var author$project$Types$major = function (s) {
+	switch (s.$) {
+		case 'I':
+			return _List_fromArray(
+				[0, 4, 7]);
+		case 'II':
+			return _List_fromArray(
+				[2, 5, 9]);
+		case 'IIN':
+			return _List_fromArray(
+				[1, 5, 8]);
+		case 'IV':
+			return _List_fromArray(
+				[5, 9, 0]);
+		case 'V':
+			return _List_fromArray(
+				[7, 11, 2, 5]);
+		case 'V9':
+			return _List_fromArray(
+				[7, 11, 5, 8]);
+		case 'VI':
+			return _List_fromArray(
+				[9, 0, 4]);
+		case 'VII':
+			return _List_fromArray(
+				[11, 2, 5, 8]);
+		case 'V_II':
+			return _List_fromArray(
+				[9, 1, 4, 7]);
+		case 'VII_II':
+			return _List_fromArray(
+				[1, 4, 7, 10]);
+		case 'V_IV':
+			return _List_fromArray(
+				[0, 4, 7, 10]);
+		case 'VII_IV':
+			return _List_fromArray(
+				[4, 7, 10, 1]);
+		case 'V_V':
+			return _List_fromArray(
+				[2, 6, 9, 0]);
+		case 'VII_V':
+			return _List_fromArray(
+				[6, 9, 0, 3]);
+		case 'V_VI':
+			return _List_fromArray(
+				[4, 8, 11, 2]);
+		case 'VII_VI':
+			return _List_fromArray(
+				[8, 11, 2, 5]);
+		default:
+			return _List_Nil;
+	}
+};
+var author$project$Types$I = {$: 'I'};
+var author$project$Types$II = {$: 'II'};
+var author$project$Types$IIN = {$: 'IIN'};
+var author$project$Types$IV = {$: 'IV'};
+var author$project$Types$V = {$: 'V'};
+var author$project$Types$V9 = {$: 'V9'};
+var author$project$Types$VI = {$: 'VI'};
+var author$project$Types$VII = {$: 'VII'};
+var author$project$Types$VII_II = {$: 'VII_II'};
+var author$project$Types$VII_IV = {$: 'VII_IV'};
+var author$project$Types$VII_V = {$: 'VII_V'};
+var author$project$Types$VII_VI = {$: 'VII_VI'};
+var author$project$Types$V_II = {$: 'V_II'};
+var author$project$Types$V_IV = {$: 'V_IV'};
+var author$project$Types$V_V = {$: 'V_V'};
+var author$project$Types$V_VI = {$: 'V_VI'};
+var author$project$Types$majorChords = _List_fromArray(
+	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_II, author$project$Types$VII_II, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
+var author$project$Types$minor = function (s) {
+	switch (s.$) {
+		case 'I':
+			return _List_fromArray(
+				[0, 3, 7]);
+		case 'II':
+			return _List_fromArray(
+				[2, 5, 8]);
+		case 'IIN':
+			return _List_fromArray(
+				[1, 5, 8]);
+		case 'IV':
+			return _List_fromArray(
+				[5, 8, 0]);
+		case 'V':
+			return _List_fromArray(
+				[7, 11, 2, 5]);
+		case 'V9':
+			return _List_fromArray(
+				[7, 11, 5, 8]);
+		case 'VI':
+			return _List_fromArray(
+				[8, 0, 3]);
+		case 'VII':
+			return _List_fromArray(
+				[11, 2, 5, 8]);
+		case 'V_IV':
+			return _List_fromArray(
+				[0, 4, 7, 10]);
+		case 'VII_IV':
+			return _List_fromArray(
+				[4, 7, 10, 1]);
+		case 'V_V':
+			return _List_fromArray(
+				[2, 6, 9, 0]);
+		case 'VII_V':
+			return _List_fromArray(
+				[6, 9, 0, 3]);
+		case 'V_VI':
+			return _List_fromArray(
+				[4, 8, 11, 2]);
+		case 'VII_VI':
+			return _List_fromArray(
+				[8, 11, 2, 5]);
+		default:
+			return _List_Nil;
+	}
+};
+var author$project$Types$minorChords = _List_fromArray(
+	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
+var elm$core$Basics$modBy = _Basics_modBy;
+var elm$core$List$any = F2(
+	function (isOkay, list) {
+		any:
+		while (true) {
+			if (!list.b) {
+				return false;
+			} else {
+				var x = list.a;
+				var xs = list.b;
+				if (isOkay(x)) {
+					return true;
+				} else {
+					var $temp$isOkay = isOkay,
+						$temp$list = xs;
+					isOkay = $temp$isOkay;
+					list = $temp$list;
+					continue any;
+				}
+			}
+		}
+	});
+var elm$core$List$member = F2(
+	function (x, xs) {
+		return A2(
+			elm$core$List$any,
+			function (a) {
+				return _Utils_eq(a, x);
+			},
+			xs);
+	});
+var author$project$State$algorithm = function (model) {
+	var note = _Utils_eq(model.current, -1) ? (-1) : A2(elm$core$Basics$modBy, 12, (model.current - model.tonic) + 12);
+	var _n0 = model.mode;
+	if (_n0.$ === 'Major') {
+		return A2(
+			elm$core$List$filterMap,
+			function (c) {
+				return A2(
+					elm$core$List$member,
+					note,
+					author$project$Types$major(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+			},
+			author$project$Types$majorChords);
+	} else {
+		return A2(
+			elm$core$List$filterMap,
+			function (c) {
+				return A2(
+					elm$core$List$member,
+					note,
+					author$project$Types$minor(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+			},
+			author$project$Types$minorChords);
+	}
+};
+var author$project$State$key = function (s) {
+	switch (s) {
+		case 'a':
+			return '0';
+		case 'w':
+			return '1';
+		case 's':
+			return '2';
+		case 'e':
+			return '3';
+		case 'd':
+			return '4';
+		case 'f':
+			return '5';
+		case 't':
+			return '6';
+		case 'g':
+			return '7';
+		case 'y':
+			return '8';
+		case 'h':
+			return '9';
+		case 'u':
+			return '10';
+		case 'j':
+			return '11';
+		default:
+			var otherwise = s;
+			return '';
+	}
+};
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$State$maybeToInt = function (s) {
+	return A2(
+		elm$core$Maybe$withDefault,
+		0,
+		elm$core$String$toInt(s));
+};
+var author$project$State$theoryUrl = function (k) {
+	switch (k) {
+		case 1:
+			return 'http://haciendomusica.com/Armonia2/Tema%2001%20-%20Escritura%20para%20coro.pdf';
+		case 2:
+			return 'http://haciendomusica.com/Armonia2/Tema%2002%20-%20El%20enlace%20de%20acordes.pdf';
+		case 3:
+			return 'http://haciendomusica.com/Armonia2/Tema%2003%20-%20El%20Sistema%20Armonico%20Basico.pdf';
+		case 4:
+			return 'http://haciendomusica.com/Armonia2/Tema%2004%20-%201a%20Inversion%20del%20acorde.pdf';
+		case 5:
+			return 'http://haciendomusica.com/Armonia2/Tema%2005%20-%20El%20acorde%20de%207a%20de%20dominante.pdf';
+		case 6:
+			return 'http://haciendomusica.com/Armonia2/Tema%2006%20-%20Las%20Cadencias.pdf';
+		case 7:
+			return 'http://haciendomusica.com/Armonia2/Tema%2007%20-%20Las%20Dominantes%20Secundarias.pdf';
+		case 8:
+			return 'http://haciendomusica.com/Armonia2/Tema%2008%20-%20Las%20Notas%20Extranas%20-%20Introduccion.pdf';
+		case 9:
+			return 'http://haciendomusica.com/Armonia2/Tema%2009%20-%20El%20Modo%20Menor.pdf';
+		case 10:
+			return 'http://haciendomusica.com/Armonia2/Tema%2010%20-%202a%20Inversion%20del%20acorde.pdf';
+		case 11:
+			return 'http://haciendomusica.com/Armonia2/Tema%2011%20-%20Modulacion%20por%20transformacion.pdf';
+		case 12:
+			return 'http://haciendomusica.com/Armonia2/Tema%2012%20-%20El%20V%20grado%20con%209a%20-%20El%20VII%20grado%20con%207a.pdf';
+		case 13:
+			return 'http://haciendomusica.com/Armonia2/Tema%2013%20-%20Progresiones%20y%20series%20de%206as.pdf';
+		case 14:
+			return 'http://haciendomusica.com/Armonia2/Tema%2014%20-%20Las%20Notas%20Extranas%20-%202a%20parte.pdf';
+		case 15:
+			return 'http://haciendomusica.com/Armonia2/Tema%2015%20-%207a%20Diatonica%20y%20Series%20de%207as.pdf';
+		case 16:
+			return 'http://haciendomusica.com/Armonia2/Tema%2016%20-%20Armonia%20Cromatica%20y%20Alterada.pdf';
+		default:
+			return '';
+	}
+};
+var author$project$Types$Input = function (a) {
+	return {$: 'Input', a: a};
+};
+var author$project$Types$UpdateOutput = function (a) {
+	return {$: 'UpdateOutput', a: a};
+};
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var mhoare$elm_stack$Stack$top = function (_n0) {
+	var stack = _n0.a;
+	return elm$core$List$head(stack);
+};
+var author$project$Types$top = function (s) {
+	return A2(
+		elm$core$Maybe$withDefault,
+		0,
+		mhoare$elm_stack$Stack$top(s));
+};
+var elm$core$Tuple$second = function (_n0) {
+	var y = _n0.b;
+	return y;
+};
+var elm$time$Time$Posix = function (a) {
+	return {$: 'Posix', a: a};
+};
+var elm$time$Time$millisToPosix = elm$time$Time$Posix;
+var elm$file$File$Download$url = function (href) {
+	return A2(
+		elm$core$Task$perform,
+		elm$core$Basics$never,
+		_File_downloadUrl(href));
+};
+var mhoare$elm_stack$Stack$pop = function (_n0) {
+	var stack = _n0.a;
+	if (!stack.b) {
+		return _Utils_Tuple2(
+			elm$core$Maybe$Nothing,
+			mhoare$elm_stack$Stack$Stack(_List_Nil));
+	} else {
+		var head = stack.a;
+		var tail = stack.b;
+		return _Utils_Tuple2(
+			elm$core$Maybe$Just(head),
+			mhoare$elm_stack$Stack$Stack(tail));
+	}
+};
+var author$project$State$update = F2(
+	function (msg, model) {
+		switch (msg.$) {
+			case 'ChangeMode':
+				var m = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{mode: m}),
+					elm$core$Platform$Cmd$none);
+			case 'ChangeTon':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							tonic: author$project$State$maybeToInt(s)
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'Input':
+				var s = msg.a;
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							current: model._new,
+							_new: author$project$State$maybeToInt(s),
+							next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
+							previous: A2(mhoare$elm_stack$Stack$push, model.current, model.previous)
+						}),
+					A2(
+						elm$core$Task$perform,
+						author$project$Types$UpdateOutput,
+						elm$core$Task$succeed(_Utils_Tuple0)));
+			case 'UpdateOutput':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							output: author$project$State$algorithm(model)
+						}),
+					elm$core$Platform$Cmd$none);
+			case 'ChangeTheory':
+				var s = msg.a;
+				var k = A2(
+					elm$core$Maybe$withDefault,
+					1,
+					elm$core$String$toInt(s));
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{theory: k}),
+					elm$core$Platform$Cmd$none);
+			case 'DownloadTheory':
+				return _Utils_Tuple2(
+					model,
+					elm$file$File$Download$url(
+						author$project$State$theoryUrl(model.theory)));
+			case 'Reset':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							current: -1,
+							_new: -1,
+							next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
+							previous: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise)
+						}),
+					A2(
+						elm$core$Task$perform,
+						author$project$Types$UpdateOutput,
+						elm$core$Task$succeed(_Utils_Tuple0)));
+			case 'Previous':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							current: author$project$Types$top(model.previous),
+							_new: model.current,
+							next: A2(mhoare$elm_stack$Stack$push, model._new, model.next),
+							previous: mhoare$elm_stack$Stack$pop(model.previous).b
+						}),
+					A2(
+						elm$core$Task$perform,
+						author$project$Types$UpdateOutput,
+						elm$core$Task$succeed(_Utils_Tuple0)));
+			case 'Next':
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{
+							current: model._new,
+							_new: author$project$Types$top(model.next),
+							next: mhoare$elm_stack$Stack$pop(model.next).b,
+							previous: A2(mhoare$elm_stack$Stack$push, model.current, model.previous)
+						}),
+					A2(
+						elm$core$Task$perform,
+						author$project$Types$UpdateOutput,
+						elm$core$Task$succeed(_Utils_Tuple0)));
+			case 'KeyDown':
+				var k = msg.a;
+				return A2(elm$core$String$contains, k, 'awsedftgyhuj') ? _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{key: k}),
+					A2(
+						elm$core$Task$perform,
+						author$project$Types$Input,
+						elm$core$Task$succeed(
+							author$project$State$key(k)))) : _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
+			default:
+				return _Utils_Tuple2(
+					_Utils_update(
+						model,
+						{key: ''}),
+					elm$core$Platform$Cmd$none);
+		}
+	});
+var author$project$Types$Next = {$: 'Next'};
+var author$project$Types$Previous = {$: 'Previous'};
+var author$project$Types$Reset = {$: 'Reset'};
+var author$project$Types$fromChord = function (s) {
+	switch (s.$) {
+		case 'I':
+			return 'I';
+		case 'II':
+			return 'II';
+		case 'IIN':
+			return 'IIN';
+		case 'IV':
+			return 'IV';
+		case 'V':
+			return 'V';
+		case 'V9':
+			return 'V9';
+		case 'VI':
+			return 'VI';
+		case 'VII':
+			return 'VII';
+		case 'V_II':
+			return 'V_II';
+		case 'VII_II':
+			return 'VII_II';
+		case 'V_IV':
+			return 'V_IV';
+		case 'VII_IV':
+			return 'VII_IV';
+		case 'V_V':
+			return 'V_V';
+		case 'VII_V':
+			return 'VII_V';
+		case 'V_VI':
+			return 'V_VI';
+		case 'VII_VI':
+			return 'VII_VI';
+		default:
+			return '';
+	}
+};
+var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
+var author$project$View$noSelect = _List_fromArray(
+	[
+		A2(elm$html$Html$Attributes$style, '-webkit-touch-callout', 'none'),
+		A2(elm$html$Html$Attributes$style, '-webkit-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-khtml-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-moz-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-ms-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, 'user-select', 'none')
+	]);
+var elm$core$Basics$neq = _Utils_notEqual;
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$virtual_dom$VirtualDom$Normal = function (a) {
+	return {$: 'Normal', a: a};
+};
+var elm$virtual_dom$VirtualDom$on = _VirtualDom_on;
+var elm$html$Html$Events$on = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$Normal(decoder));
+	});
+var elm$html$Html$Events$onMouseDown = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'mousedown',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$Events$onMouseUp = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'mouseup',
+		elm$json$Json$Decode$succeed(msg));
+};
+var author$project$View$key = F2(
+	function (k, _n0) {
+		var b = _n0.a;
+		var s = _n0.b;
+		return A2(
+			elm$html$Html$div,
+			_Utils_ap(
+				author$project$View$noSelect,
+				_Utils_ap(
+					_List_fromArray(
+						[
+							A2(elm$html$Html$Attributes$style, 'align-items', 'center'),
+							A2(elm$html$Html$Attributes$style, 'display', 'inline-flex'),
+							A2(elm$html$Html$Attributes$style, 'flex', '1'),
+							A2(elm$html$Html$Attributes$style, 'padding-bottom', '1%'),
+							A2(elm$html$Html$Attributes$style, 'justify-content', 'flex-end'),
+							A2(elm$html$Html$Attributes$style, 'flex-flow', 'column'),
+							A2(elm$html$Html$Attributes$style, 'outline', '2px solid #404040'),
+							elm$html$Html$Events$onMouseDown(
+							author$project$Types$KeyDown(s)),
+							elm$html$Html$Events$onMouseUp(author$project$Types$KeyUp)
+						]),
+					b ? _List_fromArray(
+						[
+							A2(elm$html$Html$Attributes$style, 'justify-content', 'flex-end'),
+							A2(
+							elm$html$Html$Attributes$style,
+							'color',
+							_Utils_eq(k, s) ? 'white' : '#404040'),
+							A2(
+							elm$html$Html$Attributes$style,
+							'background-color',
+							_Utils_eq(k, s) ? '#808080' : 'white')
+						]) : _Utils_ap(
+						_List_fromArray(
+							[
+								A2(elm$html$Html$Attributes$style, 'position', 'relative'),
+								A2(elm$html$Html$Attributes$style, 'height', '50%'),
+								A2(
+								elm$html$Html$Attributes$style,
+								'background-color',
+								_Utils_eq(k, s) ? '#808080' : '#404040'),
+								A2(elm$html$Html$Attributes$style, 'color', 'white'),
+								A2(elm$html$Html$Attributes$style, 'width', '8%'),
+								A2(elm$html$Html$Attributes$style, 'margin', '0 -4%')
+							]),
+						(s !== '') ? _List_Nil : _List_fromArray(
+							[
+								A2(elm$html$Html$Attributes$style, 'opacity', '0')
+							])))),
+			_List_fromArray(
+				[
+					elm$html$Html$text(s)
+				]));
+	});
+var author$project$View$keyboard = function (k) {
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2(elm$html$Html$Attributes$style, 'display', 'flex'),
+				A2(elm$html$Html$Attributes$style, 'width', '600px'),
+				A2(elm$html$Html$Attributes$style, 'height', '200px'),
+				A2(elm$html$Html$Attributes$style, 'margin', 'auto'),
+				A2(elm$html$Html$Attributes$style, 'flex-flow', 'column')
+			]),
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'background-color', '#404040'),
+						A2(elm$html$Html$Attributes$style, 'height', '10%'),
+						A2(elm$html$Html$Attributes$style, 'outline-style', 'solid'),
+						A2(elm$html$Html$Attributes$style, 'outline-color', '#404040'),
+						A2(elm$html$Html$Attributes$style, 'outline-width', '2px')
+					]),
+				_List_Nil),
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'display', 'flex'),
+						A2(elm$html$Html$Attributes$style, 'flex-flow', 'row'),
+						A2(elm$html$Html$Attributes$style, 'flex', '4')
+					]),
+				A2(
+					elm$core$List$map,
+					author$project$View$key(k),
+					_List_fromArray(
+						[
+							_Utils_Tuple2(true, 'a'),
+							_Utils_Tuple2(false, 'w'),
+							_Utils_Tuple2(true, 's'),
+							_Utils_Tuple2(false, 'e'),
+							_Utils_Tuple2(true, 'd'),
+							_Utils_Tuple2(false, ''),
+							_Utils_Tuple2(true, 'f'),
+							_Utils_Tuple2(false, 't'),
+							_Utils_Tuple2(true, 'g'),
+							_Utils_Tuple2(false, 'y'),
+							_Utils_Tuple2(true, 'h'),
+							_Utils_Tuple2(false, 'u'),
+							_Utils_Tuple2(true, 'j')
+						])))
+			]));
+};
+var author$project$Types$ChangeTheory = function (a) {
+	return {$: 'ChangeTheory', a: a};
+};
+var author$project$Types$DownloadTheory = {$: 'DownloadTheory'};
+var elm$html$Html$option = _VirtualDom_node('option');
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
+var author$project$View$intToOption = function (v) {
+	return A2(
+		elm$html$Html$option,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$value(
+				elm$core$String$fromInt(v))
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text(
+				elm$core$String$fromInt(v))
+			]));
+};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$html$Html$select = _VirtualDom_node('select');
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var elm$html$Html$Events$alwaysStop = function (x) {
+	return _Utils_Tuple2(x, true);
+};
+var elm$virtual_dom$VirtualDom$MayStopPropagation = function (a) {
+	return {$: 'MayStopPropagation', a: a};
+};
+var elm$html$Html$Events$stopPropagationOn = F2(
+	function (event, decoder) {
+		return A2(
+			elm$virtual_dom$VirtualDom$on,
+			event,
+			elm$virtual_dom$VirtualDom$MayStopPropagation(decoder));
+	});
+var elm$json$Json$Decode$at = F2(
+	function (fields, decoder) {
+		return A3(elm$core$List$foldr, elm$json$Json$Decode$field, decoder, fields);
+	});
+var elm$html$Html$Events$targetValue = A2(
+	elm$json$Json$Decode$at,
+	_List_fromArray(
+		['target', 'value']),
+	elm$json$Json$Decode$string);
+var elm$html$Html$Events$onInput = function (tagger) {
+	return A2(
+		elm$html$Html$Events$stopPropagationOn,
+		'input',
+		A2(
+			elm$json$Json$Decode$map,
+			elm$html$Html$Events$alwaysStop,
+			A2(elm$json$Json$Decode$map, tagger, elm$html$Html$Events$targetValue)));
+};
+var author$project$View$lessons = A2(
+	elm$html$Html$div,
+	_List_Nil,
+	_List_fromArray(
+		[
+			elm$html$Html$text('Lección'),
+			A2(
+			elm$html$Html$select,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onInput(author$project$Types$ChangeTheory),
+					A2(elm$html$Html$Attributes$style, 'margin', '0px 20px')
+				]),
+			A2(
+				elm$core$List$map,
+				author$project$View$intToOption,
+				A2(elm$core$List$range, 1, 16))),
+			A2(
+			elm$html$Html$button,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onClick(author$project$Types$DownloadTheory)
+				]),
+			_List_fromArray(
+				[
+					elm$html$Html$text('Descargar teoría')
+				]))
+		]));
+var author$project$View$toSNote = function (k) {
+	switch (k) {
+		case 0:
+			return 'Do';
+		case 1:
+			return 'Reb';
+		case 2:
+			return 'Re';
+		case 3:
+			return 'Mib';
+		case 4:
+			return 'Mi';
+		case 5:
+			return 'Fa';
+		case 6:
+			return 'Fa#';
+		case 7:
+			return 'Sol';
+		case 8:
+			return 'Sol#';
+		case 9:
+			return 'La';
+		case 10:
+			return 'Sib';
+		case 11:
+			return 'Si';
+		default:
+			return ' ';
+	}
+};
+var elm$html$Html$br = _VirtualDom_node('br');
+var elm$html$Html$span = _VirtualDom_node('span');
+var author$project$View$selection = function (model) {
+	return A2(
+		elm$html$Html$div,
+		_List_fromArray(
+			[
+				A2(elm$html$Html$Attributes$style, 'column-count', '3')
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text('Anterior'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
+						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						author$project$View$toSNote(
+							author$project$Types$top(model.previous)))
+					])),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				elm$html$Html$text('Actual'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
+						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						author$project$View$toSNote(model.current))
+					])),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				elm$html$Html$text('Siguiente'),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil),
+				A2(
+				elm$html$Html$span,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
+						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text(
+						author$project$View$toSNote(model._new))
+					])),
+				A2(elm$html$Html$br, _List_Nil, _List_Nil)
+			]));
+};
+var author$project$View$title = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'font-size', '30px'),
+			A2(elm$html$Html$Attributes$style, 'margin', '50px 0px')
+		]),
+	_List_fromArray(
+		[
+			elm$html$Html$text('Asistente Armónico')
+		]));
+var elm$html$Html$p = _VirtualDom_node('p');
+var author$project$View$toHtml = F2(
+	function (col, list) {
+		return function (l) {
+			return A2(elm$html$Html$div, _List_Nil, l);
+		}(
+			A2(
+				elm$core$List$map,
+				function (c) {
+					return A2(
+						elm$html$Html$p,
+						_List_fromArray(
+							[
+								A2(elm$html$Html$Attributes$style, 'color', col)
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text(c)
+							]));
+				},
+				list));
+	});
+var author$project$Types$ChangeMode = function (a) {
+	return {$: 'ChangeMode', a: a};
+};
+var author$project$Types$ChangeTon = function (a) {
+	return {$: 'ChangeTon', a: a};
+};
+var author$project$Types$Minor = {$: 'Minor'};
+var author$project$View$noteToOption = function (v) {
+	return A2(
+		elm$html$Html$option,
+		_List_fromArray(
+			[
+				elm$html$Html$Attributes$value(
+				elm$core$String$fromInt(v))
+			]),
+		_List_fromArray(
+			[
+				elm$html$Html$text(
+				author$project$View$toSNote(v))
+			]));
+};
+var elm$html$Html$input = _VirtualDom_node('input');
+var elm$html$Html$label = _VirtualDom_node('label');
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$checked = elm$html$Html$Attributes$boolProperty('checked');
+var elm$html$Html$Attributes$name = elm$html$Html$Attributes$stringProperty('name');
+var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
+var author$project$View$tonality = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'column-count', '2')
+		]),
+	_List_fromArray(
+		[
+			elm$html$Html$text(' Tónica '),
+			A2(elm$html$Html$br, _List_Nil, _List_Nil),
+			A2(
+			elm$html$Html$select,
+			_List_fromArray(
+				[
+					elm$html$Html$Events$onInput(author$project$Types$ChangeTon)
+				]),
+			A2(
+				elm$core$List$map,
+				author$project$View$noteToOption,
+				A2(elm$core$List$range, 0, 11))),
+			A2(
+			elm$html$Html$br,
+			_List_fromArray(
+				[
+					A2(elm$html$Html$Attributes$style, 'margin-bottom', '30px')
+				]),
+			_List_Nil),
+			A2(
+			elm$html$Html$label,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$input,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$type_('radio'),
+							elm$html$Html$Attributes$name('mode'),
+							elm$html$Html$Attributes$checked(true),
+							elm$html$Html$Events$onClick(
+							author$project$Types$ChangeMode(author$project$Types$Major))
+						]),
+					_List_Nil),
+					elm$html$Html$text(' Mayor ')
+				])),
+			A2(elm$html$Html$br, _List_Nil, _List_Nil),
+			A2(
+			elm$html$Html$label,
+			_List_Nil,
+			_List_fromArray(
+				[
+					A2(
+					elm$html$Html$input,
+					_List_fromArray(
+						[
+							elm$html$Html$Attributes$type_('radio'),
+							elm$html$Html$Attributes$name('mode'),
+							elm$html$Html$Attributes$checked(false),
+							elm$html$Html$Events$onClick(
+							author$project$Types$ChangeMode(author$project$Types$Minor))
+						]),
+					_List_Nil),
+					elm$html$Html$text(' Menor')
+				]))
+		]));
+var elm$browser$Browser$Document = F2(
+	function (title, body) {
+		return {body: body, title: title};
+	});
+var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
+var author$project$View$view = function (model) {
+	return A2(
+		elm$browser$Browser$Document,
+		'Asistente Armónico',
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$div,
+				_List_fromArray(
+					[
+						A2(elm$html$Html$Attributes$style, 'text-align', 'center'),
+						A2(elm$html$Html$Attributes$style, 'width', '750px'),
+						A2(elm$html$Html$Attributes$style, 'margin', 'auto')
+					]),
+				_List_fromArray(
+					[
+						author$project$View$title,
+						author$project$View$tonality,
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$keyboard(model.key),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$selection(model),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(author$project$Types$Previous),
+								elm$html$Html$Attributes$disabled(
+								_Utils_eq(
+									author$project$Types$top(model.previous),
+									-2))
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('↶ Atrás')
+							])),
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(author$project$Types$Reset),
+								A2(elm$html$Html$Attributes$style, 'margin', '0px 20px 50px 20px')
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('Reset')
+							])),
+						A2(
+						elm$html$Html$button,
+						_List_fromArray(
+							[
+								elm$html$Html$Events$onClick(author$project$Types$Next),
+								elm$html$Html$Attributes$disabled(
+								_Utils_eq(
+									author$project$Types$top(model.next),
+									-2))
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text('Adelante ↷')
+							])),
+						A2(
+						author$project$View$toHtml,
+						'black',
+						A2(elm$core$List$map, author$project$Types$fromChord, model.output)),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$lessons
+					]))
+			]));
 };
 var elm$browser$Browser$document = _Browser_document;
 var author$project$Main$main = elm$browser$Browser$document(

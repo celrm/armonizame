@@ -1,16 +1,19 @@
 module View exposing (view)
 
+import Types exposing (..)
+import Parsers exposing (..)
+import Credits exposing (..)
+
 import Browser
 import Html exposing (..)
 import Html.Attributes exposing (..)
 import Html.Events exposing (..)
-import Types exposing (..)
 
 title : Html Msg
 title =
   div
     [ style "font-size" "30px"
-    , style "margin" "50px 0px"
+    , style "margin" "30px 0px"
     ]
     [ text "Asistente Armónico"]
 
@@ -44,51 +47,76 @@ tonality =
         ]
     ]
 
-selection : Model -> Html Msg
-selection model =
-  div [style "column-count" "3"]
-  [ text "Anterior", br [] []
-  , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote <| top model.previous)], br [] []
-  , text "Actual", br [] []
-  , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote model.current)], br [] []
-  , text "Siguiente", br [] []
-  , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote <| model.new)], br [] []
-  -- , select [ onInput Input ]
-  --     (List.range -1 11 |> List.map noteToOption), br [] []
+-- selection : Model -> Html Msg
+-- selection model =
+--   div [style "column-count" "3"]
+--   [ text "Anterior", br [] []
+--   , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote <| top model.previous)], br [] []
+--   , text "Actual", br [] []
+--   , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote model.current)], br [] []
+--   , text "Siguiente", br [] []
+--   , span [style "border" "1px solid black", style "padding" "0px 10px"] [text (toSNote <| model.new)], br [] []
+--   -- , select [ onInput Input ]
+--   --     (List.range -1 11 |> List.map noteToOption), br [] []
+--   ]
+
+-- addAlert bool add =
+--   (\m ->
+--       if bool
+--       then add :: m
+--       else m
+--      )
+--
+-- alerts : Model -> Html Msg
+-- alerts model =
+--   let prev = top model.previous in
+--   []
+--     |> addAlert
+--         (model.current /= -1
+--         && modBy 12 (model.tonic - model.current + 12) == 1
+--         && model.tonic /= model.new)
+--         "No has resuelto la sensible"
+--     |> toHtml "red"
+
+controls : Model -> Html Msg
+controls model =
+  div []
+  [ button
+    [onClick Previous, disabled (top model.previous == -2)]
+    [text "↶ Atrás"]
+  , button
+    [onClick Reset, style "margin" "0px 20px" ]
+    [text "Reset"]
+  , button
+    [onClick Next, disabled (top model.next == -2)]
+    [text "Adelante ↷"]
   ]
+
+toHtml : String -> List String -> Html Msg
+toHtml col list =
+  list
+    |> List.map
+      (\c -> div
+        [style "color" col]
+        [text c]
+      )
+    |> div
+      [ style "column-count" "2"
+      , style "width" "450px"
+      , style "margin" "auto"
+      ]
 
 lessons : Html Msg
 lessons =
   div []
     [ text "Lección"
-    , select [ onInput ChangeTheory, style "margin" "0px 20px" ]
+    , select
+      [ onInput ChangeTheory, style "margin" "0px 20px" ]
       (List.range 1 16 |> List.map intToOption)
-    , button [onClick DownloadTheory] [ text "Descargar teoría" ]
+    , button
+      [onClick DownloadTheory]
+      [ text "Descargar teoría" ]
     ]
-
-addAlert bool add =
-  (\m ->
-      if bool
-      then add :: m
-      else m
-     )
-
-alerts : Model -> Html Msg
-alerts model =
-  let prev = top model.previous in
-  []
-    |> addAlert
-        (model.current /= -1
-        && modBy 12 (model.tonic - model.current + 12) == 1
-        && model.tonic /= model.new)
-        "No has resuelto la sensible"
-    |> toHtml "red"
-
-toHtml : String -> List String -> Html Msg
-toHtml col list =
-  list
-    |> List.map (\c -> p [style "color" col] [text c] )
-    |> (\l -> div [] l)
 
 view : Model -> Browser.Document Msg
 view model =
@@ -96,20 +124,19 @@ view model =
     [ div [style "text-align" "center", style "width" "750px", style "margin" "auto"]
       [ title
       , tonality, br [] []
-      , keyboard model.key
+      , keyboard (tokey model.current), br [] []
       -- , select [ onInput Input, style "margin-bottom" "20px" ]
       --     (List.range -1 11 |> List.map noteToOption), br [] []
       -- , alerts model, br [] []
-      , br [] []
-      , selection model, br [] []
-      , button [onClick Previous, disabled (top model.previous == -2)] [text "↶ Atrás"]
-      , button [onClick Reset, style "margin" "0px 20px 50px 20px" ] [text "Reset"]
-      , button [onClick Next, disabled (top model.next == -2)] [text "Adelante ↷"]
+      -- , selection model, br [] []
+      , controls model, br [] []
       , model.output
         |> List.map fromChord
         |> toHtml "black"
-      , br [] [], br [] []
+      , br [] []
       , lessons
+      , br [] []
+      , credits
       ]
     ]
   )
@@ -161,7 +188,7 @@ key k (b, s) =
   , style "flex-flow" "column"
   , style "outline" "2px solid #404040"
   , onMouseDown (KeyDown s)
-  , onMouseUp KeyUp
+  -- , onMouseUp KeyUp
   ] ++ if b then
     [ style "justify-content" "flex-end"
     , style "color" (if k == s then "white"
@@ -182,40 +209,6 @@ key k (b, s) =
     )
   )
   [ text s ]
-
-toNote : Int -> String
-toNote k =
-  case k of
-    0 -> "C"
-    1 -> "C#"
-    2 -> "D"
-    3 -> "Eb"
-    4 -> "E"
-    5 -> "F"
-    6 -> "F#"
-    7 -> "G"
-    8 -> "G#"
-    9 -> "A"
-    10 -> "Bb"
-    11 -> "B"
-    _ -> " "
-
-toSNote : Int -> String
-toSNote k =
-  case k of
-    0 -> "Do"
-    1 -> "Reb"
-    2 -> "Re"
-    3 -> "Mib"
-    4 -> "Mi"
-    5 -> "Fa"
-    6 -> "Fa#"
-    7 -> "Sol"
-    8 -> "Sol#"
-    9 -> "La"
-    10 -> "Sib"
-    11 -> "Si"
-    _ -> " "
 
 noteToOption : Int -> Html Msg
 noteToOption v =

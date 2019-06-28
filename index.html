@@ -4996,9 +4996,7 @@ var author$project$State$init = function (_n0) {
 	return _Utils_Tuple2(
 		{
 			current: -1,
-			key: '',
 			mode: author$project$Types$Major,
-			_new: -1,
 			next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
 			output: _List_Nil,
 			previous: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
@@ -5010,7 +5008,6 @@ var author$project$State$init = function (_n0) {
 var author$project$Types$KeyDown = function (a) {
 	return {$: 'KeyDown', a: a};
 };
-var author$project$Types$KeyUp = {$: 'KeyUp'};
 var elm$browser$Browser$Events$Document = {$: 'Document'};
 var elm$browser$Browser$Events$MySub = F3(
 	function (a, b, c) {
@@ -5722,7 +5719,6 @@ var elm$browser$Browser$Events$on = F3(
 			A3(elm$browser$Browser$Events$MySub, node, name, decoder));
 	});
 var elm$browser$Browser$Events$onKeyDown = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keydown');
-var elm$browser$Browser$Events$onKeyUp = A2(elm$browser$Browser$Events$on, elm$browser$Browser$Events$Document, 'keyup');
 var elm$core$Platform$Sub$batch = _Platform_batch;
 var elm$json$Json$Decode$field = _Json_decodeField;
 var elm$json$Json$Decode$string = _Json_decodeString;
@@ -5734,12 +5730,99 @@ var author$project$State$subscriptions = function (model) {
 				A2(
 					elm$json$Json$Decode$map,
 					author$project$Types$KeyDown,
-					A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string))),
-				elm$browser$Browser$Events$onKeyUp(
-				elm$json$Json$Decode$succeed(author$project$Types$KeyUp))
+					A2(elm$json$Json$Decode$field, 'key', elm$json$Json$Decode$string)))
 			]));
 };
-var author$project$Types$major = function (s) {
+var author$project$Parsers$fromkey = function (s) {
+	switch (s) {
+		case 'a':
+			return '0';
+		case 'A':
+			return '0';
+		case 'w':
+			return '1';
+		case 'W':
+			return '1';
+		case 's':
+			return '2';
+		case 'S':
+			return '2';
+		case 'e':
+			return '3';
+		case 'E':
+			return '3';
+		case 'd':
+			return '4';
+		case 'D':
+			return '4';
+		case 'f':
+			return '5';
+		case 'F':
+			return '5';
+		case 't':
+			return '6';
+		case 'T':
+			return '6';
+		case 'g':
+			return '7';
+		case 'G':
+			return '7';
+		case 'y':
+			return '8';
+		case 'Y':
+			return '8';
+		case 'h':
+			return '9';
+		case 'H':
+			return '9';
+		case 'u':
+			return '10';
+		case 'U':
+			return '10';
+		case 'j':
+			return '11';
+		case 'J':
+			return '11';
+		default:
+			var otherwise = s;
+			return '';
+	}
+};
+var elm$core$Maybe$withDefault = F2(
+	function (_default, maybe) {
+		if (maybe.$ === 'Just') {
+			var value = maybe.a;
+			return value;
+		} else {
+			return _default;
+		}
+	});
+var author$project$Parsers$maybeToInt = function (s) {
+	return A2(
+		elm$core$Maybe$withDefault,
+		0,
+		elm$core$String$toInt(s));
+};
+var elm$core$List$head = function (list) {
+	if (list.b) {
+		var x = list.a;
+		var xs = list.b;
+		return elm$core$Maybe$Just(x);
+	} else {
+		return elm$core$Maybe$Nothing;
+	}
+};
+var mhoare$elm_stack$Stack$top = function (_n0) {
+	var stack = _n0.a;
+	return elm$core$List$head(stack);
+};
+var author$project$Parsers$top = function (s) {
+	return A2(
+		elm$core$Maybe$withDefault,
+		0,
+		mhoare$elm_stack$Stack$top(s));
+};
+var author$project$Parsers$major = function (s) {
 	switch (s.$) {
 		case 'I':
 			return _List_fromArray(
@@ -5793,25 +5876,7 @@ var author$project$Types$major = function (s) {
 			return _List_Nil;
 	}
 };
-var author$project$Types$I = {$: 'I'};
-var author$project$Types$II = {$: 'II'};
-var author$project$Types$IIN = {$: 'IIN'};
-var author$project$Types$IV = {$: 'IV'};
-var author$project$Types$V = {$: 'V'};
-var author$project$Types$V9 = {$: 'V9'};
-var author$project$Types$VI = {$: 'VI'};
-var author$project$Types$VII = {$: 'VII'};
-var author$project$Types$VII_II = {$: 'VII_II'};
-var author$project$Types$VII_IV = {$: 'VII_IV'};
-var author$project$Types$VII_V = {$: 'VII_V'};
-var author$project$Types$VII_VI = {$: 'VII_VI'};
-var author$project$Types$V_II = {$: 'V_II'};
-var author$project$Types$V_IV = {$: 'V_IV'};
-var author$project$Types$V_V = {$: 'V_V'};
-var author$project$Types$V_VI = {$: 'V_VI'};
-var author$project$Types$majorChords = _List_fromArray(
-	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_II, author$project$Types$VII_II, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
-var author$project$Types$minor = function (s) {
+var author$project$Parsers$minor = function (s) {
 	switch (s.$) {
 		case 'I':
 			return _List_fromArray(
@@ -5859,6 +5924,24 @@ var author$project$Types$minor = function (s) {
 			return _List_Nil;
 	}
 };
+var author$project$Types$I = {$: 'I'};
+var author$project$Types$II = {$: 'II'};
+var author$project$Types$IIN = {$: 'IIN'};
+var author$project$Types$IV = {$: 'IV'};
+var author$project$Types$V = {$: 'V'};
+var author$project$Types$V9 = {$: 'V9'};
+var author$project$Types$VI = {$: 'VI'};
+var author$project$Types$VII = {$: 'VII'};
+var author$project$Types$VII_II = {$: 'VII_II'};
+var author$project$Types$VII_IV = {$: 'VII_IV'};
+var author$project$Types$VII_V = {$: 'VII_V'};
+var author$project$Types$VII_VI = {$: 'VII_VI'};
+var author$project$Types$V_II = {$: 'V_II'};
+var author$project$Types$V_IV = {$: 'V_IV'};
+var author$project$Types$V_V = {$: 'V_V'};
+var author$project$Types$V_VI = {$: 'V_VI'};
+var author$project$Types$majorChords = _List_fromArray(
+	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_II, author$project$Types$VII_II, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
 var author$project$Types$minorChords = _List_fromArray(
 	[author$project$Types$I, author$project$Types$II, author$project$Types$IIN, author$project$Types$IV, author$project$Types$V, author$project$Types$V9, author$project$Types$VI, author$project$Types$VII, author$project$Types$V_IV, author$project$Types$VII_IV, author$project$Types$V_V, author$project$Types$VII_V, author$project$Types$V_VI, author$project$Types$VII_VI]);
 var elm$core$Basics$modBy = _Basics_modBy;
@@ -5902,7 +5985,7 @@ var author$project$State$algorithm = function (model) {
 				return A2(
 					elm$core$List$member,
 					note,
-					author$project$Types$major(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+					author$project$Parsers$major(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
 			},
 			author$project$Types$majorChords);
 	} else {
@@ -5912,56 +5995,10 @@ var author$project$State$algorithm = function (model) {
 				return A2(
 					elm$core$List$member,
 					note,
-					author$project$Types$minor(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
+					author$project$Parsers$minor(c)) ? elm$core$Maybe$Just(c) : elm$core$Maybe$Nothing;
 			},
 			author$project$Types$minorChords);
 	}
-};
-var author$project$State$key = function (s) {
-	switch (s) {
-		case 'a':
-			return '0';
-		case 'w':
-			return '1';
-		case 's':
-			return '2';
-		case 'e':
-			return '3';
-		case 'd':
-			return '4';
-		case 'f':
-			return '5';
-		case 't':
-			return '6';
-		case 'g':
-			return '7';
-		case 'y':
-			return '8';
-		case 'h':
-			return '9';
-		case 'u':
-			return '10';
-		case 'j':
-			return '11';
-		default:
-			var otherwise = s;
-			return '';
-	}
-};
-var elm$core$Maybe$withDefault = F2(
-	function (_default, maybe) {
-		if (maybe.$ === 'Just') {
-			var value = maybe.a;
-			return value;
-		} else {
-			return _default;
-		}
-	});
-var author$project$State$maybeToInt = function (s) {
-	return A2(
-		elm$core$Maybe$withDefault,
-		0,
-		elm$core$String$toInt(s));
 };
 var author$project$State$theoryUrl = function (k) {
 	switch (k) {
@@ -6007,25 +6044,6 @@ var author$project$Types$Input = function (a) {
 var author$project$Types$UpdateOutput = function (a) {
 	return {$: 'UpdateOutput', a: a};
 };
-var elm$core$List$head = function (list) {
-	if (list.b) {
-		var x = list.a;
-		var xs = list.b;
-		return elm$core$Maybe$Just(x);
-	} else {
-		return elm$core$Maybe$Nothing;
-	}
-};
-var mhoare$elm_stack$Stack$top = function (_n0) {
-	var stack = _n0.a;
-	return elm$core$List$head(stack);
-};
-var author$project$Types$top = function (s) {
-	return A2(
-		elm$core$Maybe$withDefault,
-		0,
-		mhoare$elm_stack$Stack$top(s));
-};
 var elm$core$Tuple$second = function (_n0) {
 	var y = _n0.b;
 	return y;
@@ -6070,7 +6088,7 @@ var author$project$State$update = F2(
 					_Utils_update(
 						model,
 						{
-							tonic: author$project$State$maybeToInt(s)
+							tonic: author$project$Parsers$maybeToInt(s)
 						}),
 					elm$core$Platform$Cmd$none);
 			case 'Input':
@@ -6079,8 +6097,7 @@ var author$project$State$update = F2(
 					_Utils_update(
 						model,
 						{
-							current: model._new,
-							_new: author$project$State$maybeToInt(s),
+							current: author$project$Parsers$maybeToInt(s),
 							next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
 							previous: A2(mhoare$elm_stack$Stack$push, model.current, model.previous)
 						}),
@@ -6118,7 +6135,6 @@ var author$project$State$update = F2(
 						model,
 						{
 							current: -1,
-							_new: -1,
 							next: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise),
 							previous: A2(mhoare$elm_stack$Stack$push, -2, mhoare$elm_stack$Stack$initialise)
 						}),
@@ -6131,9 +6147,8 @@ var author$project$State$update = F2(
 					_Utils_update(
 						model,
 						{
-							current: author$project$Types$top(model.previous),
-							_new: model.current,
-							next: A2(mhoare$elm_stack$Stack$push, model._new, model.next),
+							current: author$project$Parsers$top(model.previous),
+							next: A2(mhoare$elm_stack$Stack$push, model.current, model.next),
 							previous: mhoare$elm_stack$Stack$pop(model.previous).b
 						}),
 					A2(
@@ -6145,8 +6160,7 @@ var author$project$State$update = F2(
 					_Utils_update(
 						model,
 						{
-							current: model._new,
-							_new: author$project$Types$top(model.next),
+							current: author$project$Parsers$top(model.next),
 							next: mhoare$elm_stack$Stack$pop(model.next).b,
 							previous: A2(mhoare$elm_stack$Stack$push, model.current, model.previous)
 						}),
@@ -6154,29 +6168,83 @@ var author$project$State$update = F2(
 						elm$core$Task$perform,
 						author$project$Types$UpdateOutput,
 						elm$core$Task$succeed(_Utils_Tuple0)));
-			case 'KeyDown':
+			default:
 				var k = msg.a;
 				return A2(elm$core$String$contains, k, 'awsedftgyhuj') ? _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{key: k}),
+					model,
 					A2(
 						elm$core$Task$perform,
 						author$project$Types$Input,
 						elm$core$Task$succeed(
-							author$project$State$key(k)))) : _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
-			default:
-				return _Utils_Tuple2(
-					_Utils_update(
-						model,
-						{key: ''}),
-					elm$core$Platform$Cmd$none);
+							author$project$Parsers$fromkey(k)))) : _Utils_Tuple2(model, elm$core$Platform$Cmd$none);
 		}
 	});
-var author$project$Types$Next = {$: 'Next'};
-var author$project$Types$Previous = {$: 'Previous'};
-var author$project$Types$Reset = {$: 'Reset'};
-var author$project$Types$fromChord = function (s) {
+var elm$html$Html$a = _VirtualDom_node('a');
+var elm$html$Html$div = _VirtualDom_node('div');
+var elm$html$Html$span = _VirtualDom_node('span');
+var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
+var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var elm$json$Json$Encode$string = _Json_wrap;
+var elm$html$Html$Attributes$stringProperty = F2(
+	function (key, string) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$string(string));
+	});
+var elm$html$Html$Attributes$href = function (url) {
+	return A2(
+		elm$html$Html$Attributes$stringProperty,
+		'href',
+		_VirtualDom_noJavaScriptUri(url));
+};
+var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
+var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
+var author$project$Credits$credits = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'margin-top', '100px'),
+			A2(elm$html$Html$Attributes$style, 'left', '0px'),
+			A2(elm$html$Html$Attributes$style, 'bottom', '0px'),
+			A2(elm$html$Html$Attributes$style, 'position', 'fixed'),
+			A2(elm$html$Html$Attributes$style, 'background-color', 'white'),
+			A2(elm$html$Html$Attributes$style, 'font-size', '0.75em')
+		]),
+	_List_fromArray(
+		[
+			A2(
+			elm$html$Html$span,
+			_List_fromArray(
+				[
+					A2(elm$html$Html$Attributes$style, 'margin-left', '30px')
+				]),
+			_List_fromArray(
+				[
+					elm$html$Html$text('Celia Rubio Madrigal')
+				])),
+			A2(
+			elm$html$Html$span,
+			_List_fromArray(
+				[
+					A2(elm$html$Html$Attributes$style, 'margin-left', '70px')
+				]),
+			_List_fromArray(
+				[
+					elm$html$Html$text('Email: ')
+				])),
+			A2(
+			elm$html$Html$a,
+			_List_fromArray(
+				[
+					elm$html$Html$Attributes$href('mailto:celrubio@ucm.es')
+				]),
+			_List_fromArray(
+				[
+					elm$html$Html$text('celrubio@ucm.es')
+				]))
+		]));
+var author$project$Parsers$fromChord = function (s) {
 	switch (s.$) {
 		case 'I':
 			return 'I';
@@ -6195,40 +6263,69 @@ var author$project$Types$fromChord = function (s) {
 		case 'VII':
 			return 'VII';
 		case 'V_II':
-			return 'V_II';
+			return 'V/II';
 		case 'VII_II':
-			return 'VII_II';
+			return 'VII/II';
 		case 'V_IV':
-			return 'V_IV';
+			return 'V/IV';
 		case 'VII_IV':
-			return 'VII_IV';
+			return 'VII/IV';
 		case 'V_V':
-			return 'V_V';
+			return 'V/V';
 		case 'VII_V':
-			return 'VII_V';
+			return 'VII/V';
 		case 'V_VI':
-			return 'V_VI';
+			return 'V/VI';
 		case 'VII_VI':
-			return 'VII_VI';
+			return 'VII/VI';
 		default:
 			return '';
 	}
 };
-var elm$virtual_dom$VirtualDom$style = _VirtualDom_style;
-var elm$html$Html$Attributes$style = elm$virtual_dom$VirtualDom$style;
-var author$project$View$noSelect = _List_fromArray(
-	[
-		A2(elm$html$Html$Attributes$style, '-webkit-touch-callout', 'none'),
-		A2(elm$html$Html$Attributes$style, '-webkit-user-select', 'none'),
-		A2(elm$html$Html$Attributes$style, '-khtml-user-select', 'none'),
-		A2(elm$html$Html$Attributes$style, '-moz-user-select', 'none'),
-		A2(elm$html$Html$Attributes$style, '-ms-user-select', 'none'),
-		A2(elm$html$Html$Attributes$style, 'user-select', 'none')
-	]);
-var elm$core$Basics$neq = _Utils_notEqual;
-var elm$html$Html$div = _VirtualDom_node('div');
-var elm$virtual_dom$VirtualDom$text = _VirtualDom_text;
-var elm$html$Html$text = elm$virtual_dom$VirtualDom$text;
+var author$project$Parsers$tokey = function (a) {
+	switch (a) {
+		case 0:
+			return 'a';
+		case 1:
+			return 'w';
+		case 2:
+			return 's';
+		case 3:
+			return 'e';
+		case 4:
+			return 'd';
+		case 5:
+			return 'f';
+		case 6:
+			return 't';
+		case 7:
+			return 'g';
+		case 8:
+			return 'y';
+		case 9:
+			return 'h';
+		case 10:
+			return 'u';
+		case 11:
+			return 'j';
+		default:
+			var otherwise = a;
+			return '';
+	}
+};
+var author$project$Types$Next = {$: 'Next'};
+var author$project$Types$Previous = {$: 'Previous'};
+var author$project$Types$Reset = {$: 'Reset'};
+var elm$html$Html$button = _VirtualDom_node('button');
+var elm$json$Json$Encode$bool = _Json_wrap;
+var elm$html$Html$Attributes$boolProperty = F2(
+	function (key, bool) {
+		return A2(
+			_VirtualDom_property,
+			key,
+			elm$json$Json$Encode$bool(bool));
+	});
+var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
 var elm$virtual_dom$VirtualDom$Normal = function (a) {
 	return {$: 'Normal', a: a};
 };
@@ -6240,16 +6337,73 @@ var elm$html$Html$Events$on = F2(
 			event,
 			elm$virtual_dom$VirtualDom$Normal(decoder));
 	});
+var elm$html$Html$Events$onClick = function (msg) {
+	return A2(
+		elm$html$Html$Events$on,
+		'click',
+		elm$json$Json$Decode$succeed(msg));
+};
+var author$project$View$controls = function (model) {
+	return A2(
+		elm$html$Html$div,
+		_List_Nil,
+		_List_fromArray(
+			[
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Types$Previous),
+						elm$html$Html$Attributes$disabled(
+						_Utils_eq(
+							author$project$Parsers$top(model.previous),
+							-2))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('↶ Atrás')
+					])),
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Types$Reset),
+						A2(elm$html$Html$Attributes$style, 'margin', '0px 20px')
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('Reset')
+					])),
+				A2(
+				elm$html$Html$button,
+				_List_fromArray(
+					[
+						elm$html$Html$Events$onClick(author$project$Types$Next),
+						elm$html$Html$Attributes$disabled(
+						_Utils_eq(
+							author$project$Parsers$top(model.next),
+							-2))
+					]),
+				_List_fromArray(
+					[
+						elm$html$Html$text('Adelante ↷')
+					]))
+			]));
+};
+var author$project$View$noSelect = _List_fromArray(
+	[
+		A2(elm$html$Html$Attributes$style, '-webkit-touch-callout', 'none'),
+		A2(elm$html$Html$Attributes$style, '-webkit-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-khtml-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-moz-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, '-ms-user-select', 'none'),
+		A2(elm$html$Html$Attributes$style, 'user-select', 'none')
+	]);
+var elm$core$Basics$neq = _Utils_notEqual;
 var elm$html$Html$Events$onMouseDown = function (msg) {
 	return A2(
 		elm$html$Html$Events$on,
 		'mousedown',
-		elm$json$Json$Decode$succeed(msg));
-};
-var elm$html$Html$Events$onMouseUp = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'mouseup',
 		elm$json$Json$Decode$succeed(msg));
 };
 var author$project$View$key = F2(
@@ -6271,8 +6425,7 @@ var author$project$View$key = F2(
 							A2(elm$html$Html$Attributes$style, 'flex-flow', 'column'),
 							A2(elm$html$Html$Attributes$style, 'outline', '2px solid #404040'),
 							elm$html$Html$Events$onMouseDown(
-							author$project$Types$KeyDown(s)),
-							elm$html$Html$Events$onMouseUp(author$project$Types$KeyUp)
+							author$project$Types$KeyDown(s))
 						]),
 					b ? _List_fromArray(
 						[
@@ -6365,14 +6518,6 @@ var author$project$Types$ChangeTheory = function (a) {
 };
 var author$project$Types$DownloadTheory = {$: 'DownloadTheory'};
 var elm$html$Html$option = _VirtualDom_node('option');
-var elm$json$Json$Encode$string = _Json_wrap;
-var elm$html$Html$Attributes$stringProperty = F2(
-	function (key, string) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$string(string));
-	});
 var elm$html$Html$Attributes$value = elm$html$Html$Attributes$stringProperty('value');
 var author$project$View$intToOption = function (v) {
 	return A2(
@@ -6388,14 +6533,7 @@ var author$project$View$intToOption = function (v) {
 				elm$core$String$fromInt(v))
 			]));
 };
-var elm$html$Html$button = _VirtualDom_node('button');
 var elm$html$Html$select = _VirtualDom_node('select');
-var elm$html$Html$Events$onClick = function (msg) {
-	return A2(
-		elm$html$Html$Events$on,
-		'click',
-		elm$json$Json$Decode$succeed(msg));
-};
 var elm$html$Html$Events$alwaysStop = function (x) {
 	return _Utils_Tuple2(x, true);
 };
@@ -6455,7 +6593,51 @@ var author$project$View$lessons = A2(
 					elm$html$Html$text('Descargar teoría')
 				]))
 		]));
-var author$project$View$toSNote = function (k) {
+var author$project$View$title = A2(
+	elm$html$Html$div,
+	_List_fromArray(
+		[
+			A2(elm$html$Html$Attributes$style, 'font-size', '30px'),
+			A2(elm$html$Html$Attributes$style, 'margin', '30px 0px')
+		]),
+	_List_fromArray(
+		[
+			elm$html$Html$text('Asistente Armónico')
+		]));
+var author$project$View$toHtml = F2(
+	function (col, list) {
+		return A2(
+			elm$html$Html$div,
+			_List_fromArray(
+				[
+					A2(elm$html$Html$Attributes$style, 'column-count', '2'),
+					A2(elm$html$Html$Attributes$style, 'width', '450px'),
+					A2(elm$html$Html$Attributes$style, 'margin', 'auto')
+				]),
+			A2(
+				elm$core$List$map,
+				function (c) {
+					return A2(
+						elm$html$Html$div,
+						_List_fromArray(
+							[
+								A2(elm$html$Html$Attributes$style, 'color', col)
+							]),
+						_List_fromArray(
+							[
+								elm$html$Html$text(c)
+							]));
+				},
+				list));
+	});
+var author$project$Types$ChangeMode = function (a) {
+	return {$: 'ChangeMode', a: a};
+};
+var author$project$Types$ChangeTon = function (a) {
+	return {$: 'ChangeTon', a: a};
+};
+var author$project$Types$Minor = {$: 'Minor'};
+var author$project$Parsers$toSNote = function (k) {
 	switch (k) {
 		case 0:
 			return 'Do';
@@ -6485,105 +6667,6 @@ var author$project$View$toSNote = function (k) {
 			return ' ';
 	}
 };
-var elm$html$Html$br = _VirtualDom_node('br');
-var elm$html$Html$span = _VirtualDom_node('span');
-var author$project$View$selection = function (model) {
-	return A2(
-		elm$html$Html$div,
-		_List_fromArray(
-			[
-				A2(elm$html$Html$Attributes$style, 'column-count', '3')
-			]),
-		_List_fromArray(
-			[
-				elm$html$Html$text('Anterior'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$span,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
-						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(
-						author$project$View$toSNote(
-							author$project$Types$top(model.previous)))
-					])),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				elm$html$Html$text('Actual'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$span,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
-						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(
-						author$project$View$toSNote(model.current))
-					])),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				elm$html$Html$text('Siguiente'),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil),
-				A2(
-				elm$html$Html$span,
-				_List_fromArray(
-					[
-						A2(elm$html$Html$Attributes$style, 'border', '1px solid black'),
-						A2(elm$html$Html$Attributes$style, 'padding', '0px 10px')
-					]),
-				_List_fromArray(
-					[
-						elm$html$Html$text(
-						author$project$View$toSNote(model._new))
-					])),
-				A2(elm$html$Html$br, _List_Nil, _List_Nil)
-			]));
-};
-var author$project$View$title = A2(
-	elm$html$Html$div,
-	_List_fromArray(
-		[
-			A2(elm$html$Html$Attributes$style, 'font-size', '30px'),
-			A2(elm$html$Html$Attributes$style, 'margin', '50px 0px')
-		]),
-	_List_fromArray(
-		[
-			elm$html$Html$text('Asistente Armónico')
-		]));
-var elm$html$Html$p = _VirtualDom_node('p');
-var author$project$View$toHtml = F2(
-	function (col, list) {
-		return function (l) {
-			return A2(elm$html$Html$div, _List_Nil, l);
-		}(
-			A2(
-				elm$core$List$map,
-				function (c) {
-					return A2(
-						elm$html$Html$p,
-						_List_fromArray(
-							[
-								A2(elm$html$Html$Attributes$style, 'color', col)
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text(c)
-							]));
-				},
-				list));
-	});
-var author$project$Types$ChangeMode = function (a) {
-	return {$: 'ChangeMode', a: a};
-};
-var author$project$Types$ChangeTon = function (a) {
-	return {$: 'ChangeTon', a: a};
-};
-var author$project$Types$Minor = {$: 'Minor'};
 var author$project$View$noteToOption = function (v) {
 	return A2(
 		elm$html$Html$option,
@@ -6595,19 +6678,12 @@ var author$project$View$noteToOption = function (v) {
 		_List_fromArray(
 			[
 				elm$html$Html$text(
-				author$project$View$toSNote(v))
+				author$project$Parsers$toSNote(v))
 			]));
 };
+var elm$html$Html$br = _VirtualDom_node('br');
 var elm$html$Html$input = _VirtualDom_node('input');
 var elm$html$Html$label = _VirtualDom_node('label');
-var elm$json$Json$Encode$bool = _Json_wrap;
-var elm$html$Html$Attributes$boolProperty = F2(
-	function (key, bool) {
-		return A2(
-			_VirtualDom_property,
-			key,
-			elm$json$Json$Encode$bool(bool));
-	});
 var elm$html$Html$Attributes$checked = elm$html$Html$Attributes$boolProperty('checked');
 var elm$html$Html$Attributes$name = elm$html$Html$Attributes$stringProperty('name');
 var elm$html$Html$Attributes$type_ = elm$html$Html$Attributes$stringProperty('type');
@@ -6680,7 +6756,6 @@ var elm$browser$Browser$Document = F2(
 	function (title, body) {
 		return {body: body, title: title};
 	});
-var elm$html$Html$Attributes$disabled = elm$html$Html$Attributes$boolProperty('disabled');
 var author$project$View$view = function (model) {
 	return A2(
 		elm$browser$Browser$Document,
@@ -6700,56 +6775,19 @@ var author$project$View$view = function (model) {
 						author$project$View$title,
 						author$project$View$tonality,
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						author$project$View$keyboard(model.key),
+						author$project$View$keyboard(
+						author$project$Parsers$tokey(model.current)),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						author$project$View$selection(model),
+						author$project$View$controls(model),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Types$Previous),
-								elm$html$Html$Attributes$disabled(
-								_Utils_eq(
-									author$project$Types$top(model.previous),
-									-2))
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('↶ Atrás')
-							])),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Types$Reset),
-								A2(elm$html$Html$Attributes$style, 'margin', '0px 20px 50px 20px')
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Reset')
-							])),
-						A2(
-						elm$html$Html$button,
-						_List_fromArray(
-							[
-								elm$html$Html$Events$onClick(author$project$Types$Next),
-								elm$html$Html$Attributes$disabled(
-								_Utils_eq(
-									author$project$Types$top(model.next),
-									-2))
-							]),
-						_List_fromArray(
-							[
-								elm$html$Html$text('Adelante ↷')
-							])),
 						A2(
 						author$project$View$toHtml,
 						'black',
-						A2(elm$core$List$map, author$project$Types$fromChord, model.output)),
+						A2(elm$core$List$map, author$project$Parsers$fromChord, model.output)),
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
+						author$project$View$lessons,
 						A2(elm$html$Html$br, _List_Nil, _List_Nil),
-						author$project$View$lessons
+						author$project$Credits$credits
 					]))
 			]));
 };

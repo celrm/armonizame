@@ -1,10 +1,10 @@
 module State exposing (init, subscriptions, update)
 
 import Types exposing (..)
+import Parsers exposing (..)
+
 import File.Download
-import Json.Decode exposing (Decoder, field, list)
-import Http
-import File exposing (File)
+import File
 import Task
 import Stack exposing (push, pop, Stack)
 import Browser.Events as Keyboard
@@ -16,11 +16,11 @@ init _ =
     , tonic = 0
     , previous = push -2 Stack.initialise
     , current = -1
-    , new = -1
+    -- , new = -1
     , next = push -2 Stack.initialise
     , output = []
     , theory = 1
-    , key = ""
+    -- , key = ""
     }
   , Cmd.none
   )
@@ -40,9 +40,6 @@ algorithm model =
       minorChords
       |> List.filterMap (\c -> if List.member note (minor c) then Just c else Nothing)
 
-maybeToInt : String -> Int
-maybeToInt s = Maybe.withDefault 0 (String.toInt s)
-
 update : Msg -> Model -> ( Model, Cmd Msg )
 update msg model =
   case msg of
@@ -55,8 +52,9 @@ update msg model =
       Input s ->
         ( { model
             | previous = push model.current model.previous
-            , current = model.new
-            , new = maybeToInt s
+            -- , current = model.new
+            -- , new = maybeToInt s
+            , current = maybeToInt s
             , next = push -2 Stack.initialise
           }, Task.perform UpdateOutput (Task.succeed ())
         )
@@ -73,7 +71,7 @@ update msg model =
         ( { model
             | previous = push -2 Stack.initialise
             , current = -1
-            , new = -1
+            -- , new = -1
             , next = push -2 Stack.initialise
           }, Task.perform UpdateOutput (Task.succeed ())
         )
@@ -81,46 +79,28 @@ update msg model =
           ( { model
               | previous = Tuple.second <| pop model.previous
               , current = top model.previous
-              , new = model.current
-              , next = push model.new model.next
+              -- , new = model.current
+              -- , next = push model.new model.next
+              , next = push model.current model.next
             }, Task.perform UpdateOutput (Task.succeed ())
           )
       Next ->
         ( { model
               | previous = push model.current model.previous
-              , current = model.new
-              , new = top model.next
+              -- , current = model.new
+              -- , new = top model.next
+              , current = top model.next
               , next = Tuple.second <| pop model.next
           }, Task.perform UpdateOutput (Task.succeed ())
         )
       KeyDown k ->
         if String.contains k "awsedftgyhuj"
             then
-              ( {model | key = k}, Task.perform Input (Task.succeed (key k)) )
+              ( model, Task.perform Input (Task.succeed (fromkey k)) )
             else
               ( model, Cmd.none )
-      KeyUp ->
-        ( {model | key = ""}, Cmd.none )
-
-dataDecoder : Decoder File
-dataDecoder = File.decoder
-
-key : String -> String
-key s =
-  case s of
-    "a" -> "0"
-    "w" -> "1"
-    "s" -> "2"
-    "e" -> "3"
-    "d" -> "4"
-    "f" -> "5"
-    "t" -> "6"
-    "g" -> "7"
-    "y" -> "8"
-    "h" -> "9"
-    "u" -> "10"
-    "j" -> "11"
-    otherwise -> ""
+      -- KeyUp ->
+      --   ( {model | key = ""}, Cmd.none )
 
 theoryUrl : Int -> String
 theoryUrl k =
@@ -147,5 +127,5 @@ subscriptions : Model -> Sub Msg
 subscriptions model =
     Sub.batch
     [ Keyboard.onKeyDown (D.map KeyDown (D.field "key" D.string))
-    , Keyboard.onKeyUp (D.succeed KeyUp)
+    -- , Keyboard.onKeyUp (D.succeed KeyUp)
     ]
